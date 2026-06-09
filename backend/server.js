@@ -1,16 +1,60 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const { pool, initDatabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+
+// Servir archivos estáticos del frontend
+app.use(express.static(require('path').join(__dirname, '..')));
+
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'aq1-secret-key-2024',
+  resave: false,
+  saveUninitialized: false,
+  store: new pgSession({
+    pool: pool,
+    tableName: 'session'
+  }),
+  cookie: {
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Inicializar base de datos
 initDatabase().catch(console.error);
+
+// Middleware de autenticación
+const requireAuth = (req, res, next) => {
+  if (req.session.user) {
+    next();
+  } else {
+    res.status(401).json({ error: 'No autenticado' });
+  }
+};
+
+// Aplicar middleware de autenticación a todas las rutas de la API excepto login, logout y session
+app.use('/api', (req, res, next) => {
+  // Rutas públicas que no requieren autenticación
+  const publicRoutes = ['/login', '/logout', '/session'];
+  if (publicRoutes.includes(req.path)) {
+    next();
+  } else {
+    requireAuth(req, res, next);
+  }
+});
 
 // --- PISCINAS ---
 
@@ -881,8 +925,72 @@ app.delete('/api/instalaciones-componentes/:id', async (req, res) => {
   }
 });
 
-// Servir archivos estáticos del frontend
-app.use(express.static('../'));
+// ==================== AUTENTICACIÓN ====================
+
+// Login
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
+    }
+    
+    const result = await pool.query(
+      'SELECT * FROM usuarios WHERE username = $1',
+      [username]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+    
+    const user = result.rows[0];
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+    
+    req.session.user = {
+      id: user.id,
+      username: user.username,
+      rol: user.rol,
+      sectoresPermitidos: user.sectores_permitidos
+    };
+    
+    res.json({
+      id: user.id,
+      username: user.username,
+      rol: user.rol,
+      sectoresPermitidos: user.sectores_permitidos
+    });
+  } catch (error) {
+    console.error('Error en login:', error);
+    res.status(500).json({ error: 'Error al iniciar sesión' });
+  }
+});
+
+// Verificar sesión
+app.get('/api/session', (req, res) => {
+  if (req.session.user) {
+    res.json(req.session.user);
+  } else {
+    res.status(401).json({ error: 'No autenticado' });
+  }
+});
+
+// Logout
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al cerrar sesión' });
+    }
+    res.json({ message: 'Sesión cerrada' });
+  });
+});
+
+// ==================== INICIO SERVIDOR ====================
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

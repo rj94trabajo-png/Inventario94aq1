@@ -1,38 +1,49 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AQ1 â€” Sistema de Inventarios</title>
+  <title>AQ1 — Sistema de Inventarios</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href=" ">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1>AQ1 Inventarios</h1>
-        <p>Gestión de equipos</p>
+        <h1></h1>
+        
       </div>
+     <h1 style="font-size:20px; margin-top:50px; text-align:center;">
+  AQ1 Inventarios de Equipos Y Gestion
+</h1>
+
+
       <ul class="nav-links">
-        <li><a href="#" data-page="motores" class="active"><span class="nav-icon"><i class="fas fa-gear"></i></span> Motores</a></li>
-        <li><a href="#" data-page="piscinas"><span class="nav-icon"><i class="fas fa-fish"></i></span> Piscinas</a></li>
-        <li><a href="#" data-page="inventario"><span class="nav-icon"><i class="fas fa-box"></i></span> Equipos AQ1</a></li>
-        <li><a href="#" data-page="trabajos"><span class="nav-icon"><i class="fas fa-wrench"></i></span> Baterías</a></li>
-        <li><a href="#" data-page="componentes"><span class="nav-icon"><i class="fas fa-screwdriver-wrench"></i></span> Componentes</a></li>
-        <li><a href="#" data-page="resumen"><span class="nav-icon"><i class="fas fa-chart-bar"></i></span> Resumen</a></li>
+        <li><a href="#" data-page="motores" class="active"><span class="nav-icon"><i class="fas fa-gear"></i></span> ⚙️Motores</a></li>
+        <li><a href="#" data-page="piscinas"><span class="nav-icon"><i class="fas fa-fish"></i></span> 🦐Piscinas</a></li>
+        <li><a href="#" data-page="inventario"><span class="nav-icon"><i class="fas fa-box"></i></span> 🖥️Equipos AQ1</a></li>
+        <li><a href="#" data-page="trabajos"><span class="nav-icon"><i class="fas fa-wrench"></i></span>🔋Baterías</a></li>
+        <li><a href="#" data-page="componentes"><span class="nav-icon"><i class="fas fa-screwdriver-wrench"></i></span> 🔩Componentes</a></li>
+        <li><a href="#" data-page="resumen"><span class="nav-icon"><i class="fas fa-chart-bar"></i></span> 📊Resumen</a></li>
       </ul>
     </aside>
 
     <main class="main">
-      <!-- PÃ¡gina 1: Motores -->
+      <button class="hamburger-btn" id="hamburger-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <!-- Página 1: Motores -->
       <section id="page-motores" class="page active">
         <div class="page-header">
           <div class="page-header-info">
             <h2>Gestión de Motores</h2>
             <p>Registro de motores por sector y código</p>
-            <select class="sector-select sector-select-inline" id="filter-sector-motores">
-              <option value="">â€” Seleccione un sector â€”</option>
+            <select class="sector-filter sector-select-inline" id="filter-sector-motores">
+              <option value="">— Seleccione un sector —</option>
               <option value="Sector 1">Sector 1</option>
               <option value="Sector 2">Sector 2</option>
               <option value="Sector 3">Sector 3</option>
@@ -40,14 +51,14 @@
             </select>
             <button class="btn btn-secondary btn-sm btn-resumen-inline" id="btn-resumen-motores">Resumen</button>
           </div>
-          <button class="btn btn-primary" id="btn-add-motor">+ AÃ±adir Motor</button>
+          <button class="btn btn-primary" id="btn-add-motor">+ Añadir Motor</button>
         </div>
         <div class="card resumen-panel search-hidden" id="motores-resumen-panel">
           <span class="resumen-panel-title" id="motores-resumen-title">Resumen del Sector</span>
           <ul class="resumen-lines" id="motores-resumen-body"></ul>
         </div>
         <div class="toolbar sector-toolbar">
-          <input type="text" class="search-input search-hidden" id="search-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dÃ­gitos)...">
+          <input type="text" class="search-input search-hidden" id="search-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)..." autocomplete="off">
         </div>
         <div class="card" id="motores-content">
           <p class="hint-text" id="motores-hint">Seleccione un sector para ver los motores registrados.</p>
@@ -57,7 +68,7 @@
                 <tr>
                   <th>código</th>
                   <th>Estado</th>
-                  <th>UbicaciÃ³n</th>
+                  <th>Ubicación</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -67,7 +78,7 @@
         </div>
       </section>
 
-      <!-- PÃ¡gina 2: Piscinas -->
+      <!-- Página 2: Piscinas -->
       <section id="page-piscinas" class="page">
         <div class="page-header">
           <div>
@@ -77,14 +88,14 @@
           <button class="btn btn-primary" id="btn-add-piscina">+ Nueva Piscina</button>
         </div>
         <div class="toolbar sector-toolbar">
-          <select class="sector-select" id="filter-sector-piscinas">
-            <option value="">â€” Seleccione un sector â€”</option>
+          <select class="sector-filter" id="filter-sector-piscinas">
+            <option value="">— Seleccione un sector —</option>
             <option value="Sector 1">Sector 1</option>
             <option value="Sector 2">Sector 2</option>
             <option value="Sector 3">Sector 3</option>
             <option value="Sector 4">Sector 4</option>
           </select>
-          <input type="text" class="search-input search-hidden" id="search-piscinas" inputmode="numeric" placeholder="Buscar por número de piscina...">
+          <input type="text" class="search-input search-hidden" id="search-piscinas" inputmode="numeric" placeholder="Buscar por número de piscina..." autocomplete="off">
         </div>
         <div class="card" id="piscinas-content">
           <p class="hint-text" id="piscinas-hint">Seleccione un sector para ver las piscinas registradas.</p>
@@ -92,7 +103,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>NÂ° Piscina</th>
+                  <th>N° Piscina</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -102,14 +113,14 @@
         </div>
       </section>
 
-      <!-- PÃ¡gina 3: Equipos AQ1 -->
+      <!-- Página 3: Equipos AQ1 -->
       <section id="page-inventario" class="page">
         <div class="page-header">
           <div class="page-header-info">
             <h2>Equipos AQ1</h2>
             <p>Control de equipos por sector y piscina</p>
-            <select class="sector-select sector-select-inline" id="filter-sector-equipos">
-              <option value="">â€” Seleccione un sector â€”</option>
+            <select class="sector-filter sector-select-inline" id="filter-sector-equipos">
+              <option value="">— Seleccione un sector —</option>
               <option value="Sector 1">Sector 1</option>
               <option value="Sector 2">Sector 2</option>
               <option value="Sector 3">Sector 3</option>
@@ -124,7 +135,7 @@
           <ul class="resumen-lines" id="equipos-resumen-body"></ul>
         </div>
         <div class="toolbar sector-toolbar">
-          <input type="text" class="search-input search-hidden" id="search-equipos" inputmode="numeric" placeholder="Buscar por número de piscina...">
+          <input type="text" class="search-input search-hidden" id="search-equipos" inputmode="numeric" placeholder="Buscar por número de piscina..." autocomplete="off">
         </div>
         <div class="card" id="equipos-content">
           <p class="hint-text" id="equipos-hint">Seleccione un sector para ver los equipos registrados.</p>
@@ -148,7 +159,7 @@
         </div>
       </section>
 
-      <!-- PÃ¡gina 4: Resumen General -->
+      <!-- Página 4: Resumen General -->
       <section id="page-resumen" class="page">
         <div class="page-header">
           <div>
@@ -161,15 +172,17 @@
           <div class="form-group">
             <label>Tipo de Inventario</label>
             <select class="sector-select" id="resumen-tipo">
-              <option value="">â€” Seleccione tipo â€”</option>
+              <option value="">— Seleccione tipo —</option>
               <option value="equipos">Equipos AQ1</option>
               <option value="motores">Motores</option>
+              <option value="baterias">Baterías</option>
+              <option value="componentes">Componentes</option>
             </select>
           </div>
           <div class="form-group search-hidden" id="resumen-sector-wrap">
             <label>Filtrar por Sector</label>
-            <select class="sector-select" id="filter-sector-resumen">
-              <option value="">â€” Seleccione un sector â€”</option>
+            <select class="sector-filter" id="filter-sector-resumen">
+              <option value="">— Seleccione un sector —</option>
               <option value="Sector 1">Sector 1</option>
               <option value="Sector 2">Sector 2</option>
               <option value="Sector 3">Sector 3</option>
@@ -183,35 +196,49 @@
             <h3 id="resumen-sector-label">Sector</h3>
             <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
           </div>
-          <div class="card resumen-panel resumen-panel-general">
-            <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
-            <ul class="resumen-lines" id="resumen-general-body"></ul>
-          </div>
-          <div class="toolbar sector-toolbar">
-            <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dÃ­gitos)...">
-            <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
-              <option value="">â€” Todas las piscinas â€”</option>
-            </select>
-          </div>
-          <div class="card">
-            <div class="table-wrapper">
-              <table>
-                <thead id="resumen-general-thead"></thead>
-                <tbody id="resumen-general-tbody"></tbody>
-              </table>
+          <div class="resumen-layout">
+            <div class="resumen-main">
+              <div class="card resumen-panel resumen-panel-general">
+                <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
+                <ul class="resumen-lines" id="resumen-general-body"></ul>
+              </div>
+              <div class="toolbar sector-toolbar">
+                <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)..." autocomplete="off">
+                <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
+                  <option value="">— Todas las piscinas —</option>
+                </select>
+              </div>
+              <div class="card">
+                <div class="table-wrapper">
+                  <table>
+                    <thead id="resumen-general-thead"></thead>
+                    <tbody id="resumen-general-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="resumen-charts">
+              <div class="card chart-card">
+                <span class="chart-title">Gráfica de Barras</span>
+                <canvas id="chart-bar"></canvas>
+              </div>
+              <div class="card chart-card">
+                <span class="chart-title">Gráfica Circular</span>
+                <canvas id="chart-pie"></canvas>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PÃ¡gina 5: Trabajos -->
+      <!-- Página 5: Trabajos -->
       <section id="page-trabajos" class="page">
         <div class="page-header">
           <div class="page-header-info">
-            <h2>Repuestos y Accesorios</h2>
-            <p>Gestión de baterías y repuestos</p>
-            <select class="sector-select sector-select-inline" id="filter-sector-trabajos">
-              <option value="">â€” Seleccione un sector â€”</option>
+            <h2>Registros de Baterias e Instalacion</h2>
+            <p>Gestión de baterías e Instalacion</p>
+            <select class="sector-filter sector-select-inline" id="filter-sector-trabajos">
+              <option value="">— Seleccione un sector —</option>
               <option value="Sector 1">Sector 1</option>
               <option value="Sector 2">Sector 2</option>
               <option value="Sector 3">Sector 3</option>
@@ -220,28 +247,29 @@
           </div>
         </div>
         
-        <!-- Sub-secciÃ³n: baterías -->
+        <!-- Sub-sección: baterías -->
         <div class="card trabajos-card">
-          <h3>ðŸ”‹ baterías</h3>
+          <h3>🔋 baterías</h3>
           <div class="trabajos-buttons">
             <button class="btn btn-primary" id="btn-modelos-baterias">Modelos de baterías</button>
             <button class="btn btn-primary" id="btn-lotes-baterias">Lotes de baterías</button>
             <button class="btn btn-primary" id="btn-instalaciones-baterias">instalación de baterías</button>
+            <button class="btn btn-primary" id="btn-resumen-baterias">Resumen de baterias</button>
           </div>
         </div>
 
-        <!-- Contenedor dinÃ¡mico para sub-secciones -->
+        <!-- Contenedor dinámico para sub-secciones -->
         <div id="trabajos-content"></div>
       </section>
 
-      <!-- PÃ¡gina 6: Componentes -->
+      <!-- Página 6: Componentes -->
       <section id="page-componentes" class="page">
         <div class="page-header">
           <div class="page-header-info">
             <h2>Gestión de Componentes</h2>
             <p>Registro e instalación de componentes</p>
-            <select class="sector-select sector-select-inline" id="filter-sector-componentes">
-              <option value="">â€” Seleccione un sector â€”</option>
+            <select class="sector-filter sector-select-inline" id="filter-sector-componentes">
+              <option value="">— Seleccione un sector —</option>
               <option value="Sector 1">Sector 1</option>
               <option value="Sector 2">Sector 2</option>
               <option value="Sector 3">Sector 3</option>
@@ -250,9 +278,9 @@
           </div>
         </div>
         
-        <!-- Sub-secciÃ³n: Componentes -->
+        <!-- Sub-sección: Componentes -->
         <div class="card trabajos-card">
-          <h3>ðŸ”© Componentes</h3>
+          <h3>🔩 Componentes</h3>
           <div class="trabajos-buttons">
             <button class="btn btn-primary" id="btn-registro-componentes">Registro de Componentes</button>
             <button class="btn btn-primary" id="btn-instalacion-componentes">instalación de Componentes</button>
@@ -260,7 +288,7 @@
           </div>
         </div>
 
-        <!-- Contenedor dinÃ¡mico para sub-secciones -->
+        <!-- Contenedor dinámico para sub-secciones -->
         <div id="componentes-content"></div>
       </section>
     </main>
@@ -291,6 +319,28 @@
       <div class="modal-body" id="resumen-sector-body"></div>
       <div class="modal-footer">
         <button class="btn btn-primary" id="resumen-sector-ok">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Login -->
+  <div class="modal-overlay" id="login-overlay">
+    <div class="modal login-modal">
+      <div class="modal-header">
+        <h3>Iniciar Sesión</h3>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Usuario *</label>
+          <input type="text" id="login-username" placeholder="Ingrese su usuario" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <input type="password" id="login-password" placeholder="Ingrese su contraseña" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="login-submit">Ingresar</button>
       </div>
     </div>
   </div>

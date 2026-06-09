@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -64,9 +64,9 @@ async function initDatabase() {
       );
     `);
 
-    // Eliminar tablas antiguas para recrear con nueva estructura
-    await client.query(`DROP TABLE IF EXISTS instalaciones_baterias CASCADE`);
-    await client.query(`DROP TABLE IF EXISTS lotes_baterias CASCADE`);
+    // NOTA: Las siguientes líneas que borraban tablas han sido eliminadas para evitar pérdida de datos
+    // await client.query(`DROP TABLE IF EXISTS instalaciones_baterias CASCADE`);
+    // await client.query(`DROP TABLE IF EXISTS lotes_baterias CASCADE`);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS lotes_baterias (
@@ -137,6 +137,31 @@ async function initDatabase() {
     } catch (error) {
       console.error('Error verificando/agregando columna taller_detalles:', error);
     }
+
+    // Tabla de usuarios
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id VARCHAR(50) PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        rol VARCHAR(50) NOT NULL,
+        sectores_permitidos TEXT[] NOT NULL
+      );
+    `);
+
+    // Tabla de sesiones para connect-pg-simple
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS session (
+        sid VARCHAR(255) NOT NULL PRIMARY KEY,
+        sess JSON NOT NULL,
+        expire TIMESTAMP NOT NULL
+      );
+    `);
+
+    // Crear índice para optimizar la limpieza de sesiones expiradas
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS session_expire_idx ON session (expire)
+    `);
 
     console.log('✅ Tablas creadas/verificadas exitosamente');
   } catch (error) {

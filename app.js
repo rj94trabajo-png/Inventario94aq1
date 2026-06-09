@@ -7,6 +7,51 @@ const ESTADOS_MOTOR = [
   'Piscinas'
 ];
 
+// User authentication state
+let currentUser = null;
+let sectoresPermitidos = [];
+
+// Hamburger menu toggle
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const sidebar = document.querySelector('.sidebar');
+
+  if (hamburgerBtn && sidebar) {
+    hamburgerBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+
+    // Cerrar sidebar al hacer clic fuera de él
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !hamburgerBtn.contains(e.target) && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+      }
+    });
+  }
+
+  // Check authentication on load
+  checkSession();
+
+  // Login modal event listeners
+  const loginOverlay = document.getElementById('login-overlay');
+  const loginSubmit = document.getElementById('login-submit');
+
+  // No permitir cerrar el modal de login sin autenticarse
+  // El botón de cierre está deshabilitado en el HTML
+
+  if (loginSubmit) {
+    loginSubmit.addEventListener('click', handleLogin);
+  }
+
+  // Allow Enter key to submit login
+  document.getElementById('login-password')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+  document.getElementById('login-username')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+});
+
 // Toast notification
 function showToast(message) {
   const toast = document.getElementById('toast');
@@ -16,6 +61,202 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.remove('show');
   }, 3000);
+}
+
+// Authentication functions
+async function checkSession() {
+  try {
+    const response = await fetch(`${API_BASE}/session`, {
+      credentials: 'include'
+    });
+    if (response.ok) {
+      const user = await response.json();
+      currentUser = user;
+      sectoresPermitidos = user.sectoresPermitidos || [];
+      applySectorRestrictions();
+    } else {
+      showLoginModal();
+    }
+  } catch (error) {
+    console.error('Error checking session:', error);
+    showLoginModal();
+  }
+}
+
+function showLoginModal() {
+  document.getElementById('login-overlay').classList.add('open');
+}
+
+async function handleLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!username || !password) {
+    showToast('Usuario y contraseña son requeridos');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password })
+    });
+
+    if (response.ok) {
+      const user = await response.json();
+      currentUser = user;
+      sectoresPermitidos = user.sectoresPermitidos || [];
+      
+      // Limpiar datos en memoria de la sesión anterior
+      data.motores = [];
+      data.piscinas = [];
+      data.equipos = [];
+      
+      // Resetear todos los selects de sector
+      document.querySelectorAll('.sector-filter').forEach(select => {
+        select.value = '';
+      });
+      
+      // Limpiar contenido de tablas
+      document.getElementById('tbody-motores').innerHTML = '';
+      document.getElementById('tbody-piscinas').innerHTML = '';
+      document.getElementById('tbody-equipos').innerHTML = '';
+      
+      // Ocultar tablas y mostrar hints
+      document.querySelectorAll('.table-wrapper').forEach(wrap => {
+        wrap.classList.add('search-hidden');
+      });
+      document.querySelectorAll('.hint-text').forEach(hint => {
+        hint.classList.remove('search-hidden');
+      });
+      document.querySelectorAll('.search-input').forEach(input => {
+        input.classList.add('search-hidden');
+      });
+      
+      // Ocultar paneles de resumen
+      document.querySelectorAll('.resumen-panel').forEach(panel => {
+        panel.classList.add('search-hidden');
+      });
+      
+      // Limpiar contenido dinámico
+      const trabajosContent = document.getElementById('trabajos-content');
+      if (trabajosContent) trabajosContent.innerHTML = '';
+      
+      const componentesContent = document.getElementById('componentes-content');
+      if (componentesContent) componentesContent.innerHTML = '';
+      
+      document.getElementById('login-overlay').classList.remove('open');
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
+      showToast(`Bienvenido, ${user.username}`);
+      applySectorRestrictions();
+    } else {
+      const error = await response.json();
+      showToast(error.error || 'Error al iniciar sesión');
+    }
+  } catch (error) {
+    console.error('Error en login:', error);
+    showToast('Error al iniciar sesión');
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch(`${API_BASE}/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+    currentUser = null;
+    sectoresPermitidos = [];
+    
+    // Limpiar datos en memoria
+    data.motores = [];
+    data.piscinas = [];
+    data.equipos = [];
+    
+    // Resetear todos los selects de sector
+    document.querySelectorAll('.sector-filter').forEach(select => {
+      select.value = '';
+    });
+    
+    // Limpiar contenido de tablas
+    document.getElementById('tbody-motores').innerHTML = '';
+    document.getElementById('tbody-piscinas').innerHTML = '';
+    document.getElementById('tbody-equipos').innerHTML = '';
+    
+    // Ocultar tablas y mostrar hints
+    document.querySelectorAll('.table-wrapper').forEach(wrap => {
+      wrap.classList.add('search-hidden');
+    });
+    document.querySelectorAll('.hint-text').forEach(hint => {
+      hint.classList.remove('search-hidden');
+    });
+    document.querySelectorAll('.search-input').forEach(input => {
+      input.classList.add('search-hidden');
+    });
+    
+    // Ocultar paneles de resumen
+    document.querySelectorAll('.resumen-panel').forEach(panel => {
+      panel.classList.add('search-hidden');
+    });
+    
+    // Limpiar contenido dinámico
+    const trabajosContent = document.getElementById('trabajos-content');
+    if (trabajosContent) trabajosContent.innerHTML = '';
+    
+    const componentesContent = document.getElementById('componentes-content');
+    if (componentesContent) componentesContent.innerHTML = '';
+    
+    showToast('Sesión cerrada');
+    showLoginModal();
+  } catch (error) {
+    console.error('Error en logout:', error);
+    showToast('Error al cerrar sesión');
+  }
+}
+
+function applySectorRestrictions() {
+  // Filter all sector selects based on user permissions
+  const sectorSelects = document.querySelectorAll('.sector-filter');
+  sectorSelects.forEach(select => {
+    const options = select.querySelectorAll('option');
+    options.forEach(option => {
+      // Normalizar ambos valores para comparación (eliminar espacios)
+      const normalizedOption = option.value.replace(/\s/g, '');
+      const normalizedPermitted = sectoresPermitidos.map(s => s.replace(/\s/g, ''));
+      
+      if (option.value && option.value !== '' && !normalizedPermitted.includes(normalizedOption)) {
+        option.disabled = true;
+        option.style.display = 'none';
+      } else {
+        option.disabled = false;
+        option.style.display = '';
+      }
+    });
+
+    // If user has only one permitted sector, auto-select it
+    if (sectoresPermitidos.length === 1 && !select.value) {
+      select.value = sectoresPermitidos[0];
+      // Trigger change event to load data
+      select.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // Add logout button to sidebar if not exists
+  if (!document.getElementById('logout-btn')) {
+    const navLinks = document.querySelector('.nav-links');
+    if (navLinks) {
+      const logoutLi = document.createElement('li');
+      logoutLi.innerHTML = `<a href="#" id="logout-btn"><span class="nav-icon">🚪</span> Cerrar Sesión</a>`;
+      navLinks.appendChild(logoutLi);
+      document.getElementById('logout-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        handleLogout();
+      });
+    }
+  }
 }
 
 let data = {
@@ -368,7 +609,7 @@ function refreshResumenEquiposInline() {
 function showResumenEquiposInline() {
   const sector = document.getElementById('filter-sector-equipos').value;
   if (!sector) {
-    alert('Seleccione un sector para ver el resumen.');
+    showToast('Seleccione un sector para ver el resumen.');
     return;
   }
   refreshResumenEquiposInline();
@@ -401,7 +642,7 @@ function refreshResumenMotoresInline() {
 function showResumenMotoresInline() {
   const sector = document.getElementById('filter-sector-motores').value;
   if (!sector) {
-    alert('Seleccione un sector para ver el resumen.');
+    showToast('Seleccione un sector para ver el resumen.');
     return;
   }
   refreshResumenMotoresInline();
@@ -441,6 +682,26 @@ function navigateTo(page) {
   document.getElementById(`page-${page}`).classList.add('active');
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
   renderPage(page);
+  
+  // Verificar si hay sector seleccionado y mostrar notificación si no
+  setTimeout(() => {
+    let sectorSelectId = '';
+    switch (page) {
+      case 'motores': sectorSelectId = 'filter-sector-motores'; break;
+      case 'piscinas': sectorSelectId = 'filter-sector-piscinas'; break;
+      case 'inventario': sectorSelectId = 'filter-sector-equipos'; break;
+      case 'trabajos': sectorSelectId = 'filter-sector-trabajos'; break;
+      case 'componentes': sectorSelectId = 'filter-sector-componentes'; break;
+      case 'resumen': sectorSelectId = 'filter-sector-resumen'; break;
+    }
+    
+    if (sectorSelectId) {
+      const sectorSelect = document.getElementById(sectorSelectId);
+      if (sectorSelect && !sectorSelect.value) {
+        showToast('Seleccione un sector para ver los registros');
+      }
+    }
+  }, 100);
 }
 
 function renderPage(page) {
@@ -459,6 +720,7 @@ function renderComponentes() {
   const btnRegistro = document.getElementById('btn-registro-componentes');
   const btnInstalacion = document.getElementById('btn-instalacion-componentes');
   const btnResumen = document.getElementById('btn-resumen-componentes');
+  const sectorSelect = document.getElementById('filter-sector-componentes');
 
   if (btnRegistro) {
     btnRegistro.addEventListener('click', () => showComponentesSubsection('registro'));
@@ -469,6 +731,37 @@ function renderComponentes() {
   if (btnResumen) {
     btnResumen.addEventListener('click', () => showComponentesSubsection('resumen'));
   }
+
+  // Habilitar/deshabilitar botones basado en sector seleccionado
+  if (sectorSelect) {
+    const updateButtons = () => {
+      const hasSector = sectorSelect.value !== '';
+      if (btnRegistro) btnRegistro.disabled = !hasSector;
+      if (btnInstalacion) btnInstalacion.disabled = !hasSector;
+      if (btnResumen) btnResumen.disabled = !hasSector;
+    };
+    sectorSelect.addEventListener('change', async () => {
+      const hasSector = sectorSelect.value !== '';
+      const activeSubsection = componentesSubsection;
+      
+      // Limpiar contenido cuando cambia el sector
+      const content = document.getElementById('componentes-content');
+      if (content) {
+        content.innerHTML = '';
+      }
+      
+      // Si hay una subsección activa y hay sector seleccionado, volver a renderizar
+      if (activeSubsection && hasSector) {
+        componentesSubsection = activeSubsection;
+        await showComponentesSubsection(activeSubsection);
+      } else {
+        componentesSubsection = null;
+      }
+      
+      updateButtons();
+    });
+    updateButtons(); // Inicializar estado
+  }
 }
 
 let componentesSubsection = null;
@@ -476,7 +769,7 @@ let componentesSubsection = null;
 async function showComponentesSubsection(subsection) {
   const sector = document.getElementById('filter-sector-componentes').value;
   if (!sector) {
-    alert('Seleccione un sector primero');
+    showToast('Seleccione un sector primero');
     return;
   }
 
@@ -560,7 +853,7 @@ window.openModalComponente = async function(id = null) {
     </div>
     <div class="form-group">
       <label>Nombre del Componente *</label>
-      <input type="text" id="f-nombre-componente" value="${componente.nombre || ''}" placeholder="Sin espacios">
+      <input type="text" id="f-nombre-componente" value="${componente.nombre || ''}" placeholder="Sin espacios" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
   `;
 
@@ -572,7 +865,7 @@ async function saveComponente() {
   const sector = document.getElementById('filter-sector-componentes').value;
   const nombre = document.getElementById('f-nombre-componente').value.trim();
 
-  if (!nombre) { alert('Debe ingresar el nombre del componente.'); return; }
+  if (!nombre) { showToast('Debe ingresar el nombre del componente.'); return; }
 
   const componente = {
     id: editingId || generateId(),
@@ -596,22 +889,21 @@ async function saveComponente() {
     await showComponentesSubsection('registro');
   } catch (error) {
     console.error('Error saving componente:', error);
-    alert('Error al guardar componente. Por favor intente nuevamente.');
+    showToast('Error al guardar componente. Por favor intente nuevamente.');
   }
 }
 
 window.deleteComponente = async function(id) {
-  if (!confirm('¿Eliminar este componente?')) return;
-  
   try {
     const response = await fetch(`${API_BASE}/componentes/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar componente');
+    showToast('Componente eliminado');
     await showComponentesSubsection('registro');
   } catch (error) {
     console.error('Error deleting componente:', error);
-    alert('Error al eliminar componente. Por favor intente nuevamente.');
+    showToast('Error al eliminar componente. Por favor intente nuevamente.');
   }
 };
 
@@ -736,7 +1028,7 @@ window.openModalInstalacionComponente = async function(idOrData) {
         camposHTML = `
           <div class="form-group">
             <label>Número de Tolvas *</label>
-            <input type="text" id="f-tolva-numero" placeholder="Ej: 1" value="${instalacion.tolvaNumero || ''}">
+            <input type="text" id="f-tolva-numero" placeholder="Ej: 1" value="${instalacion.tolvaNumero || ''}" ${!editingId ? 'autocomplete="off"' : ''}>
           </div>
           <div class="form-group">
             <label>Piscina *</label>
@@ -751,7 +1043,7 @@ window.openModalInstalacionComponente = async function(idOrData) {
         camposHTML = `
           <div class="form-group">
             <label>Código de Motor *</label>
-            <input type="text" id="f-motor-codigo" placeholder="Escriba para buscar..." value="${instalacion.motorCodigo || ''}" list="motores-list">
+            <input type="text" id="f-motor-codigo" placeholder="Escriba para buscar..." value="${instalacion.motorCodigo || ''}" list="motores-list" ${!editingId ? 'autocomplete="off"' : ''}>
             <datalist id="motores-list">
               ${motores.map(m => `<option value="${m.codigo}">${m.codigo}</option>`).join('')}
             </datalist>
@@ -793,7 +1085,7 @@ window.openModalInstalacionComponente = async function(idOrData) {
         camposHTML = `
           <div class="form-group">
             <label>Detalles</label>
-            <input type="text" id="f-taller-detalles" placeholder="Escriba los detalles..." value="${instalacion.tallerDetalles || ''}">
+            <input type="text" id="f-taller-detalles" placeholder="Escriba los detalles..." value="${instalacion.tallerDetalles || ''}" ${!editingId ? 'autocomplete="off"' : ''}>
           </div>
         `;
         break;
@@ -815,8 +1107,8 @@ async function saveInstalacionComponente() {
   const componenteId = document.getElementById('f-componente-id').value;
   const puntoInstalacion = document.getElementById('f-punto-instalacion').value;
 
-  if (!componenteId) { alert('Debe seleccionar un componente.'); return; }
-  if (!puntoInstalacion) { alert('Debe seleccionar un punto de instalación.'); return; }
+  if (!componenteId) { showToast('Debe seleccionar un componente.'); return; }
+  if (!puntoInstalacion) { showToast('Debe seleccionar un punto de instalación.'); return; }
 
   let piscinaNumero = null;
   let tolvaNumero = null;
@@ -828,26 +1120,26 @@ async function saveInstalacionComponente() {
     case 'Tolvas':
       tolvaNumero = document.getElementById('f-tolva-numero').value.trim();
       piscinaNumero = document.getElementById('f-piscina-numero').value;
-      if (!tolvaNumero) { alert('Debe ingresar el número de tolva.'); return; }
-      if (!piscinaNumero) { alert('Debe seleccionar una piscina.'); return; }
+      if (!tolvaNumero) { showToast('Debe ingresar el número de tolva.'); return; }
+      if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); return; }
       break;
     case 'Motores AQ1':
       motorCodigo = document.getElementById('f-motor-codigo').value.trim();
-      if (!motorCodigo) { alert('Debe seleccionar un código de motor.'); return; }
+      if (!motorCodigo) { showToast('Debe seleccionar un código de motor.'); return; }
       // Validar que el código de motor esté registrado
       const motores = await fetchMotores(sector);
       const motorRegistrado = motores.find(m => m.codigo === motorCodigo);
-      if (!motorRegistrado) { alert('El código de motor no está registrado. Por favor seleccione un código válido.'); return; }
+      if (!motorRegistrado) { showToast('El código de motor no está registrado. Por favor seleccione un código válido.'); return; }
       break;
     case 'SF200':
       piscinaNumero = document.getElementById('f-piscina-numero').value;
       sf200Zona = document.getElementById('f-sf200-zona').value;
-      if (!piscinaNumero) { alert('Debe seleccionar una piscina.'); return; }
-      if (!sf200Zona) { alert('Debe seleccionar una zona.'); return; }
+      if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); return; }
+      if (!sf200Zona) { showToast('Debe seleccionar una zona.'); return; }
       break;
     case 'Torre':
       piscinaNumero = document.getElementById('f-piscina-numero').value;
-      if (!piscinaNumero) { alert('Debe seleccionar una piscina.'); return; }
+      if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); return; }
       break;
     case 'Taller':
       tallerDetalles = document.getElementById('f-taller-detalles') ? document.getElementById('f-taller-detalles').value.trim() : '';
@@ -882,22 +1174,21 @@ async function saveInstalacionComponente() {
     await showComponentesSubsection('instalacion');
   } catch (error) {
     console.error('Error saving instalación componente:', error);
-    alert('Error al guardar instalación de componente. Por favor intente nuevamente.');
+    showToast('Error al guardar instalación de componente. Por favor intente nuevamente.');
   }
 }
 
 window.deleteInstalacionComponente = async function(id) {
-  if (!confirm('¿Eliminar esta instalación de componente?')) return;
-  
   try {
     const response = await fetch(`${API_BASE}/instalaciones-componentes/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar instalación de componente');
+    showToast('Instalación eliminada');
     await showComponentesSubsection('instalacion');
   } catch (error) {
     console.error('Error deleting instalación componente:', error);
-    alert('Error al eliminar instalación de componente. Por favor intente nuevamente.');
+    showToast('Error al eliminar instalación de componente. Por favor intente nuevamente.');
   }
 };
 
@@ -905,24 +1196,90 @@ async function renderResumenComponentes(sector) {
   const content = document.getElementById('componentes-content');
   const instalaciones = await fetchInstalacionesComponentes(sector);
 
+  // Generar lista de componentes disponibles
+  const componentesDisponibles = [...new Set(instalaciones.map(i => i.componenteNombre))].sort();
+  const mesesDisponibles = obtenerMesesDisponiblesComponentes(instalaciones);
+  const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
+
   content.innerHTML = `
     <div class="card componentes-subsection">
       <div class="componentes-subsection-header">
         <h3>📊 Resumen de Componentes</h3>
       </div>
-      <div class="resumen-componentes-tabs">
-        <button class="btn btn-secondary btn-sm" id="btn-resumen-componentes-nombres">Por Nombre</button>
-        <button class="btn btn-secondary btn-sm" id="btn-resumen-componentes-puntos">Por Punto de Instalación</button>
+      <div class="resumen-componentes-filters">
+        <select id="filter-componente" class="form-select">
+          <option value="">Todos los componentes</option>
+          ${componentesDisponibles.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <select id="filter-mes" class="form-select">
+          <option value="">Todos los meses</option>
+          ${mesesDisponibles.map(m => `<option value="${m}" ${m === mesActual ? 'selected' : ''}>${formatMes(m)}</option>`).join('')}
+        </select>
+        <select id="filter-semana" class="form-select" disabled>
+          <option value="">Todas las semanas</option>
+        </select>
+        <div>
+          <label>Vista</label>
+          <select id="filter-vista" class="form-select">
+            <option value="nombres">Por Componente</option>
+            <option value="puntos">Por punto de instalacion</option>
+            <option value="combinadas">Combinadas</option>
+          </select>
+        </div>
       </div>
       <div id="resumen-componentes-content"></div>
     </div>
   `;
 
-  document.getElementById('btn-resumen-componentes-nombres').addEventListener('click', () => renderResumenComponentesPorNombre(instalaciones));
-  document.getElementById('btn-resumen-componentes-puntos').addEventListener('click', () => renderResumenComponentesPorPunto(instalaciones));
+  // Event listeners para filtros
+  const filterComponente = document.getElementById('filter-componente');
+  const filterMes = document.getElementById('filter-mes');
+  const filterSemana = document.getElementById('filter-semana');
+
+  // Inicializar selector de semana si hay un mes seleccionado por defecto
+  if (filterMes.value) {
+    const semanas = obtenerSemanasDelMesComponentes(filterMes.value, instalaciones);
+    filterSemana.innerHTML = '<option value="">Todas las semanas</option>' + 
+      semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+    filterSemana.disabled = false;
+  }
+
+  filterComponente.addEventListener('input', () => {
+    aplicarFiltrosComponentes(instalaciones);
+  });
+
+  filterMes.addEventListener('input', () => {
+    const mesSeleccionado = filterMes.value;
+    if (mesSeleccionado) {
+      const semanas = obtenerSemanasDelMesComponentes(mesSeleccionado, instalaciones);
+      filterSemana.innerHTML = '<option value="">Todas las semanas</option>' + 
+        semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+      filterSemana.disabled = false;
+    } else {
+      filterSemana.innerHTML = '<option value="">Todas las semanas</option>';
+      filterSemana.disabled = true;
+    }
+    aplicarFiltrosComponentes(instalaciones);
+  });
+
+  filterSemana.addEventListener('input', () => {
+    aplicarFiltrosComponentes(instalaciones);
+  });
+
+  const filterVista = document.getElementById('filter-vista');
+  filterVista.addEventListener('change', () => {
+    const vista = filterVista.value;
+    
+    // Resetear filtro de componente cuando cambia la vista
+    if (vista === 'combinadas') {
+      filterComponente.value = '';
+    }
+    
+    aplicarFiltrosComponentes(instalaciones, vista);
+  });
 
   // Renderizar resumen inicial por nombre
-  renderResumenComponentesPorNombre(instalaciones);
+  aplicarFiltrosComponentes(instalaciones, 'nombres');
 }
 
 function renderResumenComponentesPorNombre(instalaciones) {
@@ -939,16 +1296,29 @@ function renderResumenComponentesPorNombre(instalaciones) {
 
   content.innerHTML = `
     <div class="resumen-componentes-margenes">
-      ${Object.keys(agrupado).map((nombre, index) => `
+      ${Object.keys(agrupado).map((nombre) => `
         <div class="resumen-componentes-margen">
-          <div class="resumen-componentes-margen-header">Componente ${index + 1}: ${nombre} (${agrupado[nombre].length} registros)</div>
-          <ul class="resumen-list">
-            ${agrupado[nombre].map(i => `
-              <li>
-                <span>${i.puntoInstalacion} - ${getDetallesInstalacion(i)} - ${formatDate(i.fechaInstalacion)}</span>
-              </li>
-            `).join('')}
-          </ul>
+          <div class="resumen-componentes-margen-header">Componentes: ${nombre} (${agrupado[nombre].length} registros)</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Punto de Instalación</th>
+                  <th>Detalles</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${agrupado[nombre].map(i => `
+                  <tr>
+                    <td>${i.puntoInstalacion}</td>
+                    <td>${getDetallesInstalacion(i)}</td>
+                    <td>${formatDate(i.fechaInstalacion)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       `).join('')}
     </div>
@@ -972,17 +1342,225 @@ function renderResumenComponentesPorPunto(instalaciones) {
       ${Object.keys(agrupado).map((punto, index) => `
         <div class="resumen-componentes-margen">
           <div class="resumen-componentes-margen-header">Punto de Instalación ${index + 1}: ${punto} (${agrupado[punto].length} registros)</div>
-          <ul class="resumen-list">
-            ${agrupado[punto].map(i => `
-              <li>
-                <span>${i.componenteNombre} - ${getDetallesInstalacion(i)} - ${formatDate(i.fechaInstalacion)}</span>
-              </li>
-            `).join('')}
-          </ul>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Componente</th>
+                  <th>Detalles</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${agrupado[punto].map(i => `
+                  <tr>
+                    <td>${i.componenteNombre}</td>
+                    <td>${getDetallesInstalacion(i)}</td>
+                    <td>${formatDate(i.fechaInstalacion)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       `).join('')}
     </div>
   `;
+}
+
+function renderResumenComponentesCombinadas(instalaciones) {
+  const content = document.getElementById('resumen-componentes-content');
+  
+  // Primera sección: Por Nombre
+  const agrupadoPorNombre = {};
+  instalaciones.forEach(i => {
+    if (!agrupadoPorNombre[i.componenteNombre]) {
+      agrupadoPorNombre[i.componenteNombre] = [];
+    }
+    agrupadoPorNombre[i.componenteNombre].push(i);
+  });
+
+  // Segunda sección: Por Punto de Instalación
+  const agrupadoPorPunto = {};
+  instalaciones.forEach(i => {
+    if (!agrupadoPorPunto[i.puntoInstalacion]) {
+      agrupadoPorPunto[i.puntoInstalacion] = [];
+    }
+    agrupadoPorPunto[i.puntoInstalacion].push(i);
+  });
+
+  content.innerHTML = `
+    <div class="resumen-componentes-margenes">
+      <div class="resumen-componentes-margen">
+        <div class="resumen-componentes-margen-header">📋 Por Nombre</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Componentes</th>
+                <th>Punto de Instalación</th>
+                <th>Detalles</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${instalaciones.map(i => `
+                <tr>
+                  <td><strong>${i.componenteNombre}</strong></td>
+                  <td>${i.puntoInstalacion}</td>
+                  <td>${getDetallesInstalacion(i)}</td>
+                  <td>${formatDate(i.fechaInstalacion)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="resumen-componentes-margen">
+        <div class="resumen-componentes-margen-header">🔧 Por Punto de Instalación</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Punto de Instalación</th>
+                <th>Componente</th>
+                <th>Detalles</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${instalaciones.map(i => `
+                <tr>
+                  <td><strong>${i.puntoInstalacion}</strong></td>
+                  <td>${i.componenteNombre}</td>
+                  <td>${getDetallesInstalacion(i)}</td>
+                  <td>${formatDate(i.fechaInstalacion)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function obtenerMesesDisponiblesComponentes(instalaciones) {
+  const meses = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    meses.add(mesKey);
+  });
+  return Array.from(meses).sort().reverse();
+}
+
+function obtenerSemanasDelMesComponentes(mesKey, instalaciones) {
+  const semanas = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesInstalacion = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    if (mesInstalacion === mesKey) {
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      semanas.add(semana);
+    }
+  });
+  return Array.from(semanas).sort((a, b) => a - b);
+}
+
+function aplicarFiltrosComponentes(instalaciones, vista = 'nombres') {
+  const filterComponente = document.getElementById('filter-componente');
+  const filterMes = document.getElementById('filter-mes');
+  const filterSemana = document.getElementById('filter-semana');
+  
+  let instalacionesFiltradas = [...instalaciones];
+  
+  // Filtrar por componente
+  if (filterComponente && filterComponente.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.componenteNombre === filterComponente.value);
+  }
+  
+  // Filtrar por mes
+  if (filterMes && filterMes.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      return mesKey === filterMes.value;
+    });
+  }
+  
+  // Filtrar por semana
+  if (filterSemana && filterSemana.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      return semana === parseInt(filterSemana.value);
+    });
+  }
+  
+  // Renderizar según la vista seleccionada
+  if (vista === 'nombres') {
+    renderResumenComponentesPorNombre(instalacionesFiltradas);
+  } else if (vista === 'puntos') {
+    renderResumenComponentesPorPunto(instalacionesFiltradas);
+  } else if (vista === 'combinadas') {
+    renderResumenComponentesCombinadas(instalacionesFiltradas);
+  }
+  
+  // Generar gráficas basadas en los datos filtrados
+  updateComponentesCharts(instalacionesFiltradas);
+}
+
+function updateComponentesCharts(instalaciones) {
+  if (instalaciones.length === 0) {
+    clearCharts();
+    return;
+  }
+  
+  // Agrupar datos para gráficas según la vista activa
+  let labels = [];
+  let data = [];
+  
+  if (activeComponentesTab === 'nombres') {
+    // Agrupar por nombre de componente
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.componenteNombre]) {
+        agrupado[i.componenteNombre] = 0;
+      }
+      agrupado[i.componenteNombre]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  } else if (activeComponentesTab === 'puntos') {
+    // Agrupar por punto de instalación
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.puntoInstalacion]) {
+        agrupado[i.puntoInstalacion] = 0;
+      }
+      agrupado[i.puntoInstalacion]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  } else if (activeComponentesTab === 'combinadas') {
+    // Agrupar por nombre de componente para vista combinada
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.componenteNombre]) {
+        agrupado[i.componenteNombre] = 0;
+      }
+      agrupado[i.componenteNombre]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  }
+  
+  // Crear gráficas
+  createBarChart(labels, data, 'Cantidad de Instalaciones');
+  createPieChart(labels, data, 'Distribución');
 }
 
 // Modal
@@ -1059,7 +1637,7 @@ function initPiscinaFormHandlers() {
     if (dup) {
       editingId = dup.id;
       document.getElementById('modal-title').textContent = 'Actualizar Piscina';
-      alert('Este número de piscina ya existe en el sector. Se cargaron los datos para actualizar.');
+      showToast('Este número de piscina ya existe en el sector. Se cargaron los datos para actualizar.');
     }
   });
 
@@ -1087,13 +1665,12 @@ async function savePiscina() {
   const sector = document.getElementById('f-sector').value;
   const numero = document.getElementById('f-numero').value.trim();
 
-  if (!sector) { alert('Debe seleccionar un sector.'); return; }
-  if (!numero) { alert('Debe ingresar el número de piscina.'); return; }
-  if (!/^\d+$/.test(numero)) { alert('Solo se permiten números.'); return; }
+  if (!sector) { showToast('Debe seleccionar un sector.'); return; }
+  if (!numero) { showToast('Debe ingresar el número de piscina.'); return; }
+  if (!/^\d+$/.test(numero)) { showToast('Solo se permiten números.'); return; }
 
   const existing = findPiscina(sector, numero);
   if (existing && existing.id !== editingId) {
-    if (!confirm('Este número ya existe en el sector. ¿Desea actualizar el registro existente?')) return;
     editingId = existing.id;
   }
 
@@ -1117,21 +1694,21 @@ async function savePiscina() {
     await renderPiscinas();
   } catch (error) {
     console.error('Error saving piscina:', error);
-    alert('Error al guardar piscina. Por favor intente nuevamente.');
+    showToast('Error al guardar piscina. Por favor intente nuevamente.');
   }
 }
 
 async function deletePiscina(id) {
-  if (!confirm('¿Eliminar esta piscina?')) return;
   try {
     const response = await fetch(`${API_BASE}/piscinas/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar piscina');
+    showToast('Piscina eliminada');
     await renderPiscinas();
   } catch (error) {
     console.error('Error deleting piscina:', error);
-    alert('Error al eliminar piscina. Por favor intente nuevamente.');
+    showToast('Error al eliminar piscina. Por favor intente nuevamente.');
   }
 }
 
@@ -1160,7 +1737,7 @@ async function renderPiscinas() {
   if (search) list = list.filter(p => p.numero.includes(search));
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="icon">🏊</div><p>No hay piscinas en este sector</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="2"><div class="empty-state"><div class="icon">🦐</div><p>No hay piscinas en este sector</p></div></td></tr>`;
     return;
   }
 
@@ -1205,8 +1782,18 @@ function initMotorFormHandlers() {
 
   restrictNumeric(codigo, 5);
 
-  codigo?.addEventListener('blur', () => {
-    if (!codigo.value || codigo.value.length !== 5) return;
+  codigo?.addEventListener('input', () => {
+    if (!codigo.value || codigo.value.length !== 5) {
+      // Si el código está vacío o no tiene 5 dígitos, restablecer a modo nuevo
+      if (!codigo.value && editingId) {
+        editingId = null;
+        document.getElementById('modal-title').textContent = 'Nuevo Motor';
+        sector.value = sector?.options[0]?.value || '';
+        estado.value = '';
+        togglePiscinaField();
+      }
+      return;
+    }
     const dup = findMotorByCodigo(codigo.value);
     if (dup && dup.id !== editingId) {
       editingId = dup.id;
@@ -1218,7 +1805,11 @@ function initMotorFormHandlers() {
         refreshPiscinas();
         piscinaSelect.value = dup.piscinaId;
       }
-      alert('Este código ya está registrado. Se cargaron los datos para actualizar.');
+      showToast('Este código ya está registrado. Se cargaron los datos para actualizar.');
+    } else if (!dup && editingId) {
+      // Si el código no existe pero estábamos en modo edición, restablecer a modo nuevo
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'Nuevo Motor';
     }
   });
 
@@ -1251,7 +1842,7 @@ function motorForm(id) {
     </div>
     <div class="form-group">
       <label>Código del Motor * (5 dígitos)</label>
-      <input type="text" inputmode="numeric" id="f-codigo" value="${m.codigo || ''}" maxlength="5" placeholder="00000">
+      <input type="text" inputmode="numeric" id="f-codigo" value="${m.codigo || ''}" maxlength="5" placeholder="00000" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     ${editingId ? '<p class="form-note">Modo actualización — el código no se duplicará.</p>' : ''}
   `;
@@ -1263,14 +1854,13 @@ async function saveMotor() {
   const codigo = document.getElementById('f-codigo').value.trim();
   const piscinaId = document.getElementById('f-piscinaId')?.value || '';
 
-  if (!sector) { alert('Debe seleccionar un sector.'); return; }
-  if (!estadoMotor) { alert('Debe seleccionar el estado del motor.'); return; }
-  if (!/^\d{5}$/.test(codigo)) { alert('El código debe tener exactamente 5 dígitos numéricos.'); return; }
-  if (estadoMotor === 'Piscinas' && !piscinaId) { alert('Debe seleccionar una piscina.'); return; }
+  if (!sector) { showToast('Debe seleccionar un sector.'); return; }
+  if (!estadoMotor) { showToast('Debe seleccionar el estado del motor.'); return; }
+  if (!/^\d{5}$/.test(codigo)) { showToast('El código debe tener exactamente 5 dígitos numéricos.'); return; }
+  if (estadoMotor === 'Piscinas' && !piscinaId) { showToast('Debe seleccionar una piscina.'); return; }
 
   const existing = findMotorByCodigo(codigo);
   if (existing && existing.id !== editingId) {
-    if (!confirm('Este código ya existe. ¿Desea actualizar el registro existente?')) return;
     editingId = existing.id;
   }
 
@@ -1298,21 +1888,21 @@ async function saveMotor() {
     }
   } catch (error) {
     console.error('Error saving motor:', error);
-    alert('Error al guardar motor. Por favor intente nuevamente.');
+    showToast('Error al guardar motor. Por favor intente nuevamente.');
   }
 }
 
 async function deleteMotor(id) {
-  if (!confirm('¿Eliminar este motor?')) return;
   try {
     const response = await fetch(`${API_BASE}/motores/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar motor');
+    showToast('Motor eliminado');
     await renderMotores();
   } catch (error) {
     console.error('Error deleting motor:', error);
-    alert('Error al eliminar motor. Por favor intente nuevamente.');
+    showToast('Error al eliminar motor. Por favor intente nuevamente.');
   }
 }
 
@@ -1385,7 +1975,7 @@ function initEquipoFormHandlers() {
   });
 
   piscina?.addEventListener('change', () => {
-    if (!sector?.value || !piscina.value || editingId) return;
+    if (!sector?.value || !piscina.value) return;
     const dup = findEquipoByPiscina(sector.value, piscina.value);
     if (dup) {
       editingId = dup.id;
@@ -1396,7 +1986,16 @@ function initEquipoFormHandlers() {
       document.getElementById('f-hidrofos').value = dup.hidrofos || '';
       document.getElementById('f-motores').value = dup.motores || '';
       document.getElementById('f-estadoEma').value = dup.estadoEma;
-      alert('Esta piscina ya tiene equipo registrado. Se cargaron los datos para actualizar.');
+      showToast('Esta piscina ya tiene equipo registrado. Se cargaron los datos para actualizar.');
+    } else {
+      editingId = null;
+      document.getElementById('modal-title').textContent = 'Nuevo Equipo AQ1';
+      document.getElementById('f-estadoPiscina').value = 'Activa';
+      document.getElementById('f-tolvas').value = '';
+      document.getElementById('f-sf200').value = '';
+      document.getElementById('f-hidrofos').value = '';
+      document.getElementById('f-motores').value = '';
+      document.getElementById('f-estadoEma').value = 'Operativo';
     }
   });
 
@@ -1432,19 +2031,19 @@ function equipoForm(id) {
     </div>
     <div class="form-group">
       <label>Tolvas</label>
-      <input type="text" inputmode="numeric" id="f-tolvas" value="${e.tolvas || ''}" placeholder="Solo números">
+      <input type="text" inputmode="numeric" id="f-tolvas" value="${e.tolvas || ''}" placeholder="Solo números" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     <div class="form-group">
       <label>SF200</label>
-      <input type="text" id="f-sf200" value="${e.sf200 || ''}" placeholder="Ej: 1.5 (un solo punto)">
+      <input type="text" id="f-sf200" value="${e.sf200 || ''}" placeholder="Ej: 1.5 (un solo punto)" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     <div class="form-group">
       <label>Hidrofos</label>
-      <input type="text" inputmode="numeric" id="f-hidrofos" value="${e.hidrofos || ''}" placeholder="Total hidrofonos">
+      <input type="text" inputmode="numeric" id="f-hidrofos" value="${e.hidrofos || ''}" placeholder="Total hidrofonos" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     <div class="form-group">
       <label>Motores</label>
-      <input type="text" inputmode="numeric" id="f-motores" value="${e.motores || ''}" placeholder="Número de motores">
+      <input type="text" inputmode="numeric" id="f-motores" value="${e.motores || ''}" placeholder="Número de motores" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     <div class="form-group">
       <label>Estado EMA *</label>
@@ -1467,17 +2066,16 @@ async function saveEquipo() {
   const motores = document.getElementById('f-motores').value.trim();
   const estadoEma = document.getElementById('f-estadoEma').value;
 
-  if (!sector) { alert('Debe seleccionar un sector.'); return; }
-  if (!piscinaId) { alert('Debe seleccionar una piscina.'); return; }
+  if (!sector) { showToast('Debe seleccionar un sector.'); return; }
+  if (!piscinaId) { showToast('Debe seleccionar una piscina.'); return; }
 
-  if (tolvas && !/^\d+$/.test(tolvas)) { alert('Tolvas solo acepta números.'); return; }
-  if (sf200 && !isValidDecimal(sf200)) { alert('SF200 solo acepta números con un punto (ej: 1.5).'); return; }
-  if (hidrofos && !/^\d+$/.test(hidrofos)) { alert('Hidrofos solo acepta números.'); return; }
-  if (motores && !/^\d+$/.test(motores)) { alert('Motores solo acepta números.'); return; }
+  if (tolvas && !/^\d+$/.test(tolvas)) { showToast('Tolvas solo acepta números.'); return; }
+  if (sf200 && !isValidDecimal(sf200)) { showToast('SF200 solo acepta números con un punto (ej: 1.5).'); return; }
+  if (hidrofos && !/^\d+$/.test(hidrofos)) { showToast('Hidrofos solo acepta números.'); return; }
+  if (motores && !/^\d+$/.test(motores)) { showToast('Motores solo acepta números.'); return; }
 
   const existing = findEquipoByPiscina(sector, piscinaId);
   if (existing && existing.id !== editingId) {
-    if (!confirm('Esta piscina ya tiene equipo registrado. ¿Desea actualizar el registro existente?')) return;
     editingId = existing.id;
   }
 
@@ -1509,21 +2107,21 @@ async function saveEquipo() {
     }
   } catch (error) {
     console.error('Error saving equipo:', error);
-    alert('Error al guardar equipo. Por favor intente nuevamente.');
+    showToast('Error al guardar equipo. Por favor intente nuevamente.');
   }
 }
 
 async function deleteEquipo(id) {
-  if (!confirm('¿Eliminar este equipo?')) return;
   try {
     const response = await fetch(`${API_BASE}/equipos/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar equipo');
+    showToast('Equipo eliminado');
     await renderEquipos();
   } catch (error) {
     console.error('Error deleting equipo:', error);
-    alert('Error al eliminar equipo. Por favor intente nuevamente.');
+    showToast('Error al eliminar equipo. Por favor intente nuevamente.');
   }
 }
 
@@ -1563,7 +2161,7 @@ async function renderEquipos() {
   }
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📦</div><p>No hay equipos en este sector</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">🖥️</div><p>No hay equipos en este sector</p></div></td></tr>`;
     return;
   }
 
@@ -1674,6 +2272,140 @@ function renderResumenGeneralTable() {
   }
 }
 
+let previousResumenTipo = '';
+let activeBateriasTab = 'nombres';
+let activeComponentesTab = 'nombres';
+let chartBarInstance = null;
+let chartPieInstance = null;
+
+function createBarChart(labels, data, label) {
+  const ctx = document.getElementById('chart-bar');
+  if (!ctx) return;
+  
+  // Destruir gráfica existente si hay una
+  if (chartBarInstance) {
+    chartBarInstance.destroy();
+  }
+  
+  chartBarInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        backgroundColor: [
+          'rgba(6, 182, 212, 0.7)',
+          'rgba(34, 197, 94, 0.7)',
+          'rgba(245, 158, 11, 0.7)',
+          'rgba(239, 68, 68, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(236, 72, 153, 0.7)'
+        ],
+        borderColor: [
+          'rgba(6, 182, 212, 1)',
+          'rgba(34, 197, 94, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(139, 92, 246, 1)',
+          'rgba(236, 72, 153, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: '#334155'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: '#334155'
+          }
+        }
+      }
+    }
+  });
+}
+
+function createPieChart(labels, data, label) {
+  const ctx = document.getElementById('chart-pie');
+  if (!ctx) return;
+  
+  // Destruir gráfica existente si hay una
+  if (chartPieInstance) {
+    chartPieInstance.destroy();
+  }
+  
+  chartPieInstance = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        backgroundColor: [
+          'rgba(6, 182, 212, 0.7)',
+          'rgba(34, 197, 94, 0.7)',
+          'rgba(245, 158, 11, 0.7)',
+          'rgba(239, 68, 68, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(236, 72, 153, 0.7)'
+        ],
+        borderColor: [
+          'rgba(6, 182, 212, 1)',
+          'rgba(34, 197, 94, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(139, 92, 246, 1)',
+          'rgba(236, 72, 153, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#f1f5f9',
+            padding: 10
+          }
+        }
+      }
+    }
+  });
+}
+
+function clearCharts() {
+  if (chartBarInstance) {
+    chartBarInstance.destroy();
+    chartBarInstance = null;
+  }
+  if (chartPieInstance) {
+    chartPieInstance.destroy();
+    chartPieInstance = null;
+  }
+}
+
 function renderResumen() {
   const tipo = getResumenTipo();
   const sector = getResumenSector();
@@ -1684,29 +2416,300 @@ function renderResumen() {
 
   sectorWrap.classList.toggle('search-hidden', !tipo);
 
+  // Si cambiamos de baterías o componentes a otro tipo, restaurar el HTML inmediatamente
+  if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes') && tipo && tipo !== previousResumenTipo) {
+    content.innerHTML = `
+      <div class="resumen-sector-header">
+        <h3 id="resumen-sector-label">Sector</h3>
+        <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
+      </div>
+      <div class="card resumen-panel resumen-panel-general">
+        <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
+        <ul class="resumen-lines" id="resumen-general-body"></ul>
+      </div>
+      <div class="toolbar sector-toolbar">
+        <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
+        <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
+          <option value="">— Todas las piscinas —</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead id="resumen-general-thead"></thead>
+            <tbody id="resumen-general-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    // Re-adjuntar event listeners
+    document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+    document.getElementById('search-resumen-motores').addEventListener('input', renderResumenGeneralTable);
+    restrictNumeric(document.getElementById('search-resumen-motores'), 5);
+    document.getElementById('search-resumen-equipos-piscina').addEventListener('change', renderResumenGeneralTable);
+    
+    // Actualizar las referencias a los elementos
+    const newSearchMotores = document.getElementById('search-resumen-motores');
+    const newSearchEquipos = document.getElementById('search-resumen-equipos-piscina');
+    
+    if (!tipo || !sector) {
+      content.classList.add('search-hidden');
+      if (newSearchMotores) newSearchMotores.classList.add('search-hidden');
+      if (newSearchEquipos) newSearchEquipos.classList.add('search-hidden');
+      previousResumenTipo = tipo;
+      return;
+    }
+    
+    content.classList.remove('search-hidden');
+    if (newSearchMotores) newSearchMotores.classList.toggle('search-hidden', tipo !== 'motores');
+    if (newSearchEquipos) newSearchEquipos.classList.toggle('search-hidden', tipo !== 'equipos');
+    
+    if (tipo === 'equipos') populateResumenPiscinaSearch(sector);
+    if (tipo === 'motores') newSearchMotores.value = '';
+    
+    renderResumenGeneralSummary(sector, tipo);
+    renderResumenGeneralTable();
+    
+    previousResumenTipo = tipo;
+    return;
+  }
+
   if (!tipo || !sector) {
     content.classList.add('search-hidden');
-    searchMotores.classList.add('search-hidden');
-    searchEquipos.classList.add('search-hidden');
+    if (searchMotores) searchMotores.classList.add('search-hidden');
+    if (searchEquipos) searchEquipos.classList.add('search-hidden');
+    previousResumenTipo = tipo;
     return;
   }
 
   content.classList.remove('search-hidden');
-  searchMotores.classList.toggle('search-hidden', tipo !== 'motores');
-  searchEquipos.classList.toggle('search-hidden', tipo !== 'equipos');
+  if (searchMotores) searchMotores.classList.toggle('search-hidden', tipo !== 'motores');
+  if (searchEquipos) searchEquipos.classList.toggle('search-hidden', tipo !== 'equipos');
 
   if (tipo === 'equipos') populateResumenPiscinaSearch(sector);
   if (tipo === 'motores') searchMotores.value = '';
 
-  renderResumenGeneralSummary(sector, tipo);
-  renderResumenGeneralTable();
+  // Manejar baterías y componentes de manera diferente
+  if (tipo === 'baterias') {
+    renderResumenBateriasPage(sector);
+  } else if (tipo === 'componentes') {
+    renderResumenComponentesPage(sector);
+  } else {
+    renderResumenGeneralSummary(sector, tipo);
+    renderResumenGeneralTable();
+  }
+  
+  previousResumenTipo = tipo;
+}
+
+async function renderResumenComponentesPage(sector) {
+  try {
+    const content = document.getElementById('resumen-general-content');
+    const instalaciones = await fetchInstalacionesComponentes(sector);
+    
+    // Resetear activeComponentesTab al valor por defecto
+    activeComponentesTab = 'nombres';
+
+    // Generar lista de componentes disponibles
+    const componentesDisponibles = [...new Set(instalaciones.map(i => i.componenteNombre))].sort();
+    const mesesDisponibles = obtenerMesesDisponiblesComponentes(instalaciones);
+    const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+    content.innerHTML = `
+      <div class="resumen-sector-header">
+        <h3 id="resumen-sector-label">${sector}</h3>
+        <div class="resumen-componentes-filters">
+          <div class="form-group">
+            <label>Vista</label>
+            <select id="filter-vista" class="form-select">
+              <option value="nombres">Por Nombre</option>
+              <option value="puntos">Por Punto de Instalación</option>
+              <option value="combinadas">Vista Combinada</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Componente</label>
+            <select id="filter-componente" class="form-select">
+              <option value="">Todos los componentes</option>
+              ${componentesDisponibles.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mes</label>
+            <select id="filter-mes" class="form-select">
+              <option value="">Todos los meses</option>
+              ${mesesDisponibles.map(m => `<option value="${m}" ${m === mesActual ? 'selected' : ''}>${formatMes(m)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Semana</label>
+            <select id="filter-semana" class="form-select" disabled>
+              <option value="">Todas las semanas</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
+      </div>
+      <div class="resumen-layout">
+        <div class="resumen-main">
+          <div class="card resumen-panel resumen-panel-general">
+            <span class="resumen-panel-title" id="resumen-general-title">Resumen de Componentes</span>
+            <div id="resumen-componentes-content"></div>
+          </div>
+        </div>
+        <div class="resumen-charts">
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica de Barras</span>
+            <canvas id="chart-bar"></canvas>
+          </div>
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica Circular</span>
+            <canvas id="chart-pie"></canvas>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Re-adjuntar event listener al botón de exportar Excel
+    document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+
+    // Event listeners para filtros
+    const filterVista = document.getElementById('filter-vista');
+    const filterComponente = document.getElementById('filter-componente');
+    const filterMes = document.getElementById('filter-mes');
+    const filterSemana = document.getElementById('filter-semana');
+
+    // Inicializar selector de semana si hay un mes seleccionado por defecto
+    if (filterMes.value) {
+      const semanas = obtenerSemanasDelMesComponentes(filterMes.value, instalaciones);
+      filterSemana.innerHTML = '<option value="">Todas las semanas</option>' + 
+        semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+      filterSemana.disabled = false;
+    }
+
+    filterVista.addEventListener('change', () => {
+      const vista = filterVista.value;
+      
+      // Resetear filtro de componente cuando cambia la vista
+      if (vista === 'combinadas') {
+        filterComponente.value = '';
+      }
+      
+      activeComponentesTab = vista;
+      aplicarFiltrosComponentes(instalaciones, vista);
+    });
+
+    filterComponente.addEventListener('input', () => {
+      aplicarFiltrosComponentes(instalaciones, filterVista.value);
+    });
+
+    filterMes.addEventListener('input', () => {
+      const mesSeleccionado = filterMes.value;
+      if (mesSeleccionado) {
+        const semanas = obtenerSemanasDelMesComponentes(mesSeleccionado, instalaciones);
+        filterSemana.innerHTML = '<option value="">Todas las semanas</option>' + 
+          semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+        filterSemana.disabled = false;
+      } else {
+        filterSemana.innerHTML = '<option value="">Todas las semanas</option>';
+        filterSemana.disabled = true;
+      }
+      aplicarFiltrosComponentes(instalaciones, filterVista.value);
+    });
+
+    filterSemana.addEventListener('input', () => {
+      aplicarFiltrosComponentes(instalaciones, filterVista.value);
+    });
+
+    // Renderizar resumen inicial por nombre
+    aplicarFiltrosComponentes(instalaciones, 'nombres');
+  } catch (error) {
+    console.error('Error renderizando resumen de componentes:', error);
+    const content = document.getElementById('resumen-general-content');
+    content.innerHTML = '<p class="hint-text">Error al cargar datos de componentes.</p>';
+  }
+}
+
+function getFilteredBateriasInstalaciones(instalaciones) {
+  const filterMes = document.getElementById('filter-mes');
+  const filterSemana = document.getElementById('filter-semana');
+  const filterNombre = document.getElementById('filter-nombre');
+  const filterLote = document.getElementById('filter-lote');
+  
+  let instalacionesFiltradas = [...instalaciones];
+  
+  // Filtrar por mes
+  if (filterMes && filterMes.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      return mesKey === filterMes.value;
+    });
+  }
+  
+  // Filtrar por semana
+  if (filterSemana && filterSemana.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      return semana === parseInt(filterSemana.value);
+    });
+  }
+  
+  // Filtrar por nombre de batería si se proporciona y no es "Todos"
+  if (filterNombre && filterNombre.value && filterNombre.value !== 'Todos') {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.modeloNombre === filterNombre.value);
+  }
+  
+  // Filtrar por lote si se proporciona y no es "Todos"
+  if (filterLote && filterLote.value && filterLote.value !== 'Todos') {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.loteNombre === filterLote.value);
+  }
+  
+  return instalacionesFiltradas;
+}
+
+function getFilteredComponentesInstalaciones(instalaciones) {
+  const filterComponente = document.getElementById('filter-componente');
+  const filterMes = document.getElementById('filter-mes');
+  const filterSemana = document.getElementById('filter-semana');
+  
+  let instalacionesFiltradas = [...instalaciones];
+  
+  // Filtrar por componente
+  if (filterComponente && filterComponente.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.componenteNombre === filterComponente.value);
+  }
+  
+  // Filtrar por mes
+  if (filterMes && filterMes.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      return mesKey === filterMes.value;
+    });
+  }
+  
+  // Filtrar por semana
+  if (filterSemana && filterSemana.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      return semana === parseInt(filterSemana.value);
+    });
+  }
+  
+  return instalacionesFiltradas;
 }
 
 function exportResumenExcel() {
   const tipo = getResumenTipo();
   const sector = getResumenSector();
   if (!tipo || !sector) {
-    alert('Seleccione tipo de inventario y sector.');
+    showToast('Seleccione tipo de inventario y sector.');
     return;
   }
 
@@ -1721,6 +2724,182 @@ function exportResumenExcel() {
       m.estadoMotor === 'Piscinas' ? getPiscinaLabel(m.piscinaId) : '—'
     ]);
     filename = `AQ1_Motores_${sector.replace(/\s/g, '_')}.xls`;
+  } else if (tipo === 'baterias') {
+    fetchInstalacionesBaterias(sector).then(instalaciones => {
+      // Aplicar los mismos filtros que se muestran en la vista
+      const instalacionesFiltradas = getFilteredBateriasInstalaciones(instalaciones);
+      
+      // Determinar el formato según la vista activa
+      if (activeBateriasTab === 'nombres') {
+        // Agrupar por nombre de batería
+        const agrupado = {};
+        instalacionesFiltradas.forEach(i => {
+          if (!agrupado[i.modeloNombre]) {
+            agrupado[i.modeloNombre] = [];
+          }
+          agrupado[i.modeloNombre].push(i);
+        });
+        
+        headers = ['Piscina', 'Tolva', 'Fecha', 'Lote'];
+        rows = [];
+        Object.keys(agrupado).forEach((nombre, index) => {
+          // Agregar fila de encabezado para el grupo
+          rows.push([`Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros)`, '', '', '']);
+          
+          // Agregar filas de datos
+          agrupado[nombre].forEach(i => {
+            rows.push([
+              i.piscinaNumero,
+              i.tolvaNumero,
+              formatDate(i.fechaInstalacion),
+              i.loteNombre
+            ]);
+          });
+          
+          // Agregar fila vacía como separador
+          rows.push(['', '', '', '']);
+        });
+        filename = `AQ1_Baterias_Por_Nombres_${sector.replace(/\s/g, '_')}.xls`;
+      } else if (activeBateriasTab === 'lotes') {
+        // Agrupar por lote
+        const agrupado = {};
+        instalacionesFiltradas.forEach(i => {
+          const loteKey = i.loteNombre;
+          if (!agrupado[loteKey]) {
+            agrupado[loteKey] = [];
+          }
+          agrupado[loteKey].push(i);
+        });
+        
+        headers = ['Lote', 'Modelo', 'Amperaje', 'Piscina', 'Tolva', 'Fecha'];
+        rows = [];
+        Object.keys(agrupado).forEach((loteKey, index) => {
+          // Agregar filas de datos con el nombre del lote en la primera columna
+          agrupado[loteKey].forEach(i => {
+            rows.push([
+              loteKey,
+              i.modeloNombre,
+              `${i.amperaje}A`,
+              i.piscinaNumero,
+              i.tolvaNumero,
+              formatDate(i.fechaInstalacion)
+            ]);
+          });
+          
+          // Agregar fila vacía como separador entre lotes
+          rows.push(['', '', '', '', '', '']);
+        });
+        filename = `AQ1_Baterias_Por_Lotes_${sector.replace(/\s/g, '_')}.xls`;
+      } else {
+        // Vista combinada
+        headers = ['Nombre', 'Amperaje', 'Lote', 'Piscina', 'Tolva', 'Fecha'];
+        rows = instalacionesFiltradas.map(i => [
+          i.modeloNombre,
+          `${i.amperaje}A`,
+          i.loteNombre,
+          i.piscinaNumero,
+          i.tolvaNumero,
+          formatDate(i.fechaInstalacion)
+        ]);
+        filename = `AQ1_Baterias_Combinada_${sector.replace(/\s/g, '_')}.xls`;
+      }
+      
+      const th = h => `<th style="${center}background:#334155;color:#fff;font-weight:bold;">${escapeHtml(h)}</th>`;
+      const td = v => `<td style="${center}">${escapeHtml(v)}</td>`;
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="UTF-8"></head>
+<body><table border="1"><thead><tr>${headers.map(th).join('')}</tr></thead>
+<tbody>${rows.map(r => `<tr>${r.map(td).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+
+      const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }).catch(error => {
+      console.error('Error exportando baterías:', error);
+      showToast('Error al exportar baterías.');
+    });
+    return;
+  } else if (tipo === 'componentes') {
+    fetchInstalacionesComponentes(sector).then(instalaciones => {
+      // Aplicar los mismos filtros que se muestran en la vista
+      const instalacionesFiltradas = getFilteredComponentesInstalaciones(instalaciones);
+      
+      // Determinar el formato según la vista activa
+      if (activeComponentesTab === 'nombres') {
+        headers = ['Componente', 'Punto de Instalación', 'Detalles', 'Fecha'];
+        rows = instalacionesFiltradas.map(i => [
+          i.componenteNombre,
+          i.puntoInstalacion,
+          getDetallesInstalacion(i),
+          formatDate(i.fechaInstalacion)
+        ]);
+        filename = `AQ1_Componentes_Por_Nombre_${sector.replace(/\s/g, '_')}.xls`;
+      } else if (activeComponentesTab === 'puntos') {
+        headers = ['Punto de Instalación', 'Componente', 'Detalles', 'Fecha'];
+        rows = instalacionesFiltradas.map(i => [
+          i.puntoInstalacion,
+          i.componenteNombre,
+          getDetallesInstalacion(i),
+          formatDate(i.fechaInstalacion)
+        ]);
+        filename = `AQ1_Componentes_Por_Punto_${sector.replace(/\s/g, '_')}.xls`;
+      } else if (activeComponentesTab === 'combinadas') {
+        // Vista combinada: mostrar ambas secciones como tablas planas
+        rows = [];
+        
+        // Primera sección: Por Nombre
+        rows.push(['POR NOMBRE', '', '', '']);
+        rows.push(['Componente', 'Punto de Instalación', 'Detalles', 'Fecha']);
+        instalacionesFiltradas.forEach(i => {
+          rows.push([
+            i.componenteNombre,
+            i.puntoInstalacion,
+            getDetallesInstalacion(i),
+            formatDate(i.fechaInstalacion)
+          ]);
+        });
+        
+        // Separador entre secciones
+        rows.push(['', '', '', '']);
+        rows.push(['', '', '', '']);
+        
+        // Segunda sección: Por Punto de Instalación
+        rows.push(['POR PUNTO DE INSTALACIÓN', '', '', '']);
+        rows.push(['Punto de Instalación', 'Componente', 'Detalles', 'Fecha']);
+        instalacionesFiltradas.forEach(i => {
+          rows.push([
+            i.puntoInstalacion,
+            i.componenteNombre,
+            getDetallesInstalacion(i),
+            formatDate(i.fechaInstalacion)
+          ]);
+        });
+        
+        headers = ['Componente / Punto de Instalación', 'Punto de Instalación / Componente', 'Detalles', 'Fecha'];
+        filename = `AQ1_Componentes_Combinada_${sector.replace(/\s/g, '_')}.xls`;
+      }
+      
+      const th = h => `<th style="${center}background:#334155;color:#fff;font-weight:bold;">${escapeHtml(h)}</th>`;
+      const td = v => `<td style="${center}">${escapeHtml(v)}</td>`;
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="UTF-8"></head>
+<body><table border="1"><thead><tr>${headers.map(th).join('')}</tr></thead>
+<tbody>${rows.map(r => `<tr>${r.map(td).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+
+      const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }).catch(error => {
+      console.error('Error exportando componentes:', error);
+      showToast('Error al exportar componentes.');
+    });
+    return;
   } else {
     headers = ['Piscina', 'Estado de Piscina', 'SF200', 'Tolvas', 'Motores', 'Hidrofonos', 'Emas'];
     rows = getEquiposSectorList(sector).map(e => [
@@ -1770,6 +2949,46 @@ document.getElementById('btn-add-item').addEventListener('click', () => openModa
 document.getElementById('btn-resumen-equipos').addEventListener('click', toggleResumenEquipos);
 document.getElementById('btn-resumen-motores').addEventListener('click', toggleResumenMotores);
 
+// Habilitar/deshabilitar botones basado en sector seleccionado - Motores
+const sectorMotores = document.getElementById('filter-sector-motores');
+const btnAddMotor = document.getElementById('btn-add-motor');
+const btnResumenMotores = document.getElementById('btn-resumen-motores');
+if (sectorMotores && btnAddMotor) {
+  const updateMotoresButtons = () => {
+    const hasSector = sectorMotores.value !== '';
+    btnAddMotor.disabled = !hasSector;
+    if (btnResumenMotores) btnResumenMotores.disabled = !hasSector;
+  };
+  sectorMotores.addEventListener('change', updateMotoresButtons);
+  updateMotoresButtons();
+}
+
+// Habilitar/deshabilitar botones basado en sector seleccionado - Piscinas
+const sectorPiscinas = document.getElementById('filter-sector-piscinas');
+const btnAddPiscina = document.getElementById('btn-add-piscina');
+if (sectorPiscinas && btnAddPiscina) {
+  const updatePiscinasButtons = () => {
+    const hasSector = sectorPiscinas.value !== '';
+    btnAddPiscina.disabled = !hasSector;
+  };
+  sectorPiscinas.addEventListener('change', updatePiscinasButtons);
+  updatePiscinasButtons();
+}
+
+// Habilitar/deshabilitar botones basado en sector seleccionado - Equipos
+const sectorEquipos = document.getElementById('filter-sector-equipos');
+const btnAddEquipo = document.getElementById('btn-add-item');
+const btnResumenEquipos = document.getElementById('btn-resumen-equipos');
+if (sectorEquipos && btnAddEquipo) {
+  const updateEquiposButtons = () => {
+    const hasSector = sectorEquipos.value !== '';
+    btnAddEquipo.disabled = !hasSector;
+    if (btnResumenEquipos) btnResumenEquipos.disabled = !hasSector;
+  };
+  sectorEquipos.addEventListener('change', updateEquiposButtons);
+  updateEquiposButtons();
+}
+
 document.getElementById('filter-sector-piscinas').addEventListener('change', renderPiscinas);
 document.getElementById('search-piscinas').addEventListener('input', renderPiscinas);
 restrictNumeric(document.getElementById('search-piscinas'));
@@ -1784,19 +3003,53 @@ restrictNumeric(document.getElementById('search-equipos'));
 
 document.getElementById('resumen-tipo').addEventListener('change', () => {
   document.getElementById('filter-sector-resumen').value = '';
-  document.getElementById('search-resumen-motores').value = '';
-  document.getElementById('search-resumen-equipos-piscina').value = '';
+  const searchMotores = document.getElementById('search-resumen-motores');
+  const searchEquipos = document.getElementById('search-resumen-equipos-piscina');
+  if (searchMotores) searchMotores.value = '';
+  if (searchEquipos) searchEquipos.value = '';
   renderResumen();
 });
-document.getElementById('filter-sector-resumen').addEventListener('change', () => {
-  document.getElementById('search-resumen-motores').value = '';
-  document.getElementById('search-resumen-equipos-piscina').value = '';
+document.getElementById('filter-sector-resumen').addEventListener('change', async () => {
+  const searchMotores = document.getElementById('search-resumen-motores');
+  const searchEquipos = document.getElementById('search-resumen-equipos-piscina');
+  if (searchMotores) searchMotores.value = '';
+  if (searchEquipos) searchEquipos.value = '';
+  
+  // Refrescar datos cuando cambia el sector
+  const sector = document.getElementById('filter-sector-resumen').value;
+  const tipo = document.getElementById('resumen-tipo').value;
+  
+  if (sector && tipo === 'motores') {
+    data.motores = await fetchMotores(sector);
+  } else if (sector && tipo === 'equipos') {
+    data.equipos = await fetchEquipos(sector);
+    data.piscinas = await fetchPiscinas(sector);
+  }
+  // No necesitamos recargar datos para baterías o componentes aquí,
+  // ya que renderResumenBateriasPage y renderResumenComponentesPage
+  // hacen el fetch directamente dentro de ellas.
+  
   renderResumen();
 });
 document.getElementById('search-resumen-motores').addEventListener('input', renderResumenGeneralTable);
 restrictNumeric(document.getElementById('search-resumen-motores'), 5);
 document.getElementById('search-resumen-equipos-piscina').addEventListener('change', renderResumenGeneralTable);
 document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+
+// Habilitar/deshabilitar botón de exportar Excel basado en sector seleccionado - Resumen
+const sectorResumen = document.getElementById('filter-sector-resumen');
+const btnExportExcel = document.getElementById('btn-export-excel');
+const resumenTipo = document.getElementById('resumen-tipo');
+if (sectorResumen && btnExportExcel && resumenTipo) {
+  const updateResumenButtons = () => {
+    const hasSector = sectorResumen.value !== '';
+    const hasTipo = resumenTipo.value !== '';
+    btnExportExcel.disabled = !hasSector || !hasTipo;
+  };
+  sectorResumen.addEventListener('change', updateResumenButtons);
+  resumenTipo.addEventListener('change', updateResumenButtons);
+  updateResumenButtons();
+}
 
 window.openModal = openModal;
 window.deletePiscina = deletePiscina;
@@ -1817,11 +3070,38 @@ function renderTrabajos() {
 document.getElementById('btn-modelos-baterias').addEventListener('click', () => showBateriasSubsection('modelos'));
 document.getElementById('btn-lotes-baterias').addEventListener('click', () => showBateriasSubsection('lotes'));
 document.getElementById('btn-instalaciones-baterias').addEventListener('click', () => showBateriasSubsection('instalaciones'));
+document.getElementById('btn-resumen-baterias').addEventListener('click', () => showBateriasSubsection('resumen'));
+
+// Habilitar/deshabilitar botones basado en sector seleccionado - Baterías
+const sectorTrabajos = document.getElementById('filter-sector-trabajos');
+const btnModelosBaterias = document.getElementById('btn-modelos-baterias');
+const btnLotesBaterias = document.getElementById('btn-lotes-baterias');
+const btnInstalacionesBaterias = document.getElementById('btn-instalaciones-baterias');
+const btnResumenBaterias = document.getElementById('btn-resumen-baterias');
+if (sectorTrabajos && btnModelosBaterias) {
+  const updateBateriasButtons = () => {
+    const hasSector = sectorTrabajos.value !== '';
+    btnModelosBaterias.disabled = !hasSector;
+    if (btnLotesBaterias) btnLotesBaterias.disabled = !hasSector;
+    if (btnInstalacionesBaterias) btnInstalacionesBaterias.disabled = !hasSector;
+    if (btnResumenBaterias) btnResumenBaterias.disabled = !hasSector;
+  };
+  sectorTrabajos.addEventListener('change', () => {
+    // Limpiar contenido cuando cambia el sector
+    const content = document.getElementById('trabajos-content');
+    if (content) {
+      content.innerHTML = '';
+    }
+    trabajosSubsection = null;
+    updateBateriasButtons();
+  });
+  updateBateriasButtons();
+}
 
 async function showBateriasSubsection(subsection) {
   const sector = document.getElementById('filter-sector-trabajos').value;
   if (!sector) {
-    alert('Seleccione un sector primero');
+    showToast('Seleccione un sector primero');
     return;
   }
 
@@ -1837,6 +3117,9 @@ async function showBateriasSubsection(subsection) {
       break;
     case 'instalaciones':
       await renderInstalacionesBaterias(sector);
+      break;
+    case 'resumen':
+      await renderResumenBateriasSummary(sector);
       break;
   }
 }
@@ -1939,12 +3222,30 @@ async function renderInstalacionesBaterias(sector) {
   const content = document.getElementById('trabajos-content');
   const instalaciones = await fetchInstalacionesBaterias(sector);
   const piscinas = await fetchPiscinas(sector);
+  
+  const mesesDisponibles = obtenerMesesDisponiblesBaterias(instalaciones);
+  const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
 
   content.innerHTML = `
     <div class="card baterias-subsection">
       <div class="baterias-subsection-header">
-        <h3>🔧 Instalaciones de Baterías</h3>
+        <h3>🔋  Instalaciones de Baterías 🔋</h3>
         <button class="btn btn-primary btn-sm" id="btn-add-instalacion-bateria">+ Nueva Instalación</button>
+      </div>
+      <div class="resumen-baterias-filters">
+        <div class="form-group">
+          <label>Mes</label>
+          <select id="filtro-mes-baterias" class="sector-select">
+            <option value="">Todos los meses</option>
+            ${mesesDisponibles.map(m => `<option value="${m}" ${m === mesActual ? 'selected' : ''}>${formatMes(m)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Semana</label>
+          <select id="filtro-semana-baterias" class="sector-select" disabled>
+            <option value="">Todas las semanas</option>
+          </select>
+        </div>
       </div>
       <div class="table-wrapper">
         <table>
@@ -1980,11 +3281,13 @@ async function renderInstalacionesBaterias(sector) {
       </div>
       
       <!-- Resumen de baterías -->
-      <div class="resumen-baterias-container">
-        <div class="resumen-baterias-tabs">
-          <button class="resumen-baterias-tab active" data-tab="nombres">Por Nombres</button>
-          <button class="resumen-baterias-tab" data-tab="lotes">Por Lotes</button>
+      <div class="resumen-baterias-filters">
+        <div class="form-group">
+          
+          </select>
         </div>
+      </div>
+      <div class="resumen-baterias-container">
         <div id="resumen-baterias-content"></div>
       </div>
     </div>
@@ -1998,26 +3301,350 @@ async function renderInstalacionesBaterias(sector) {
     });
   }
   
-  // Event listeners para tabs de resumen
-  document.querySelectorAll('.resumen-baterias-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.resumen-baterias-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      renderResumenBaterias(tab.dataset.tab, instalaciones);
-    });
+  // Event listeners para filtros de mes y semana
+  const mesFilter = document.getElementById('filtro-mes-baterias');
+  const semanaFilter = document.getElementById('filtro-semana-baterias');
+  
+  // Inicializar selector de semana si hay un mes seleccionado por defecto
+  if (mesFilter.value) {
+    const semanas = obtenerSemanasDelMesBaterias(mesFilter.value, instalaciones);
+    semanaFilter.innerHTML = '<option value="">Todas las semanas</option>' +
+      semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+    semanaFilter.disabled = false;
+  }
+  
+  mesFilter.addEventListener('input', () => {
+    const mesSeleccionado = mesFilter.value;
+    if (mesSeleccionado) {
+      const semanas = obtenerSemanasDelMesBaterias(mesSeleccionado, instalaciones);
+      semanaFilter.innerHTML = '<option value="">Todas las semanas</option>' +
+        semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+      semanaFilter.disabled = false;
+    } else {
+      semanaFilter.innerHTML = '<option value="">Todas las semanas</option>';
+      semanaFilter.disabled = true;
+    }
+    // Filtrar instalaciones por mes y semana
+    const tbody = document.querySelector('#trabajos-content tbody');
+    const filteredInstalaciones = filterInstalacionesByDate(instalaciones, mesFilter.value, semanaFilter.value);
+    tbody.innerHTML = filteredInstalaciones.length === 0 ?
+      '<tr><td colspan="7"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' :
+      filteredInstalaciones.map(i => `
+        <tr>
+          <td><strong>${i.modeloNombre}</strong></td>
+          <td>${i.amperaje}A</td>
+          <td>${i.loteNombre}</td>
+          <td>${i.piscinaNumero}</td>
+          <td>${i.tolvaNumero}</td>
+          <td>${formatDate(i.fechaInstalacion)}</td>
+          <td class="actions">
+            <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionBateria('${i.id}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="window.deleteInstalacionBateria('${i.id}')">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
   });
 
-  // Renderizar resumen inicial
-  renderResumenBaterias('nombres', instalaciones);
+  semanaFilter.addEventListener('input', () => {
+    // Filtrar instalaciones por mes y semana
+    const tbody = document.querySelector('#trabajos-content tbody');
+    const filteredInstalaciones = filterInstalacionesByDate(instalaciones, mesFilter.value, semanaFilter.value);
+    tbody.innerHTML = filteredInstalaciones.length === 0 ?
+      '<tr><td colspan="7"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' :
+      filteredInstalaciones.map(i => `
+        <tr>
+          <td><strong>${i.modeloNombre}</strong></td>
+          <td>${i.amperaje}A</td>
+          <td>${i.loteNombre}</td>
+          <td>${i.piscinaNumero}</td>
+          <td>${i.tolvaNumero}</td>
+          <td>${formatDate(i.fechaInstalacion)}</td>
+          <td class="actions">
+            <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionBateria('${i.id}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="window.deleteInstalacionBateria('${i.id}')">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+  });
 }
 
-function renderResumenBaterias(tipo, instalaciones) {
-  const content = document.getElementById('resumen-baterias-content');
+function filterInstalacionesByDate(instalaciones, mes, semana) {
+  if (!mes) return instalaciones;
   
-  if (tipo === 'nombres') {
+  return instalaciones.filter(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const fechaMes = fecha.toISOString().slice(0, 7); // YYYY-MM
+    
+    if (fechaMes !== mes) return false;
+    
+    if (semana) {
+      const dia = fecha.getDate();
+      const semanaNum = Math.ceil(dia / 7);
+      return semanaNum === parseInt(semana);
+    }
+    
+    return true;
+  });
+}
+
+async function renderResumenBateriasSummary(sector) {
+  const content = document.getElementById('trabajos-content');
+  const instalaciones = await fetchInstalacionesBaterias(sector);
+  
+  const mesesDisponibles = obtenerMesesDisponiblesBaterias(instalaciones);
+  
+  // Obtener lista única de nombres de baterías y lotes
+  const nombresUnicos = [...new Set(instalaciones.map(i => i.modeloNombre).filter(n => n))].sort();
+  const lotesUnicos = [...new Set(instalaciones.map(i => i.loteNombre).filter(l => l))].sort();
+
+  content.innerHTML = `
+    <div class="card baterias-subsection">
+      <div class="baterias-subsection-header">
+        <h3>📊 Resumen de Baterías</h3>
+      </div>
+      <div class="resumen-baterias-filters">
+        <div class="form-group">
+          <label>Tipo de registro</label>
+          <select id="tipo-registro-summary" class="sector-select">
+            <option value="Seleccionar">Seleccionar</option>
+            <option value="todos">Todos</option>
+            <option value="nombres">Por Nombres</option>
+            <option value="lotes">Por Lotes</option>
+          </select>
+        </div>
+        <div class="form-group search-hidden" id="filtro-nombre-wrap">
+          <label>Nombre de Batería</label>
+          <select id="filtro-nombre-summary" class="sector-select">
+            <option value="Todos">Todos</option>
+            ${nombresUnicos.map(n => `<option value="${n}">${n}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group search-hidden" id="filtro-lote-wrap">
+          <label>Lote</label>
+          <select id="filtro-lote-summary" class="sector-select">
+            <option value="Todos">Todos</option>
+            ${lotesUnicos.map(l => `<option value="${l}">${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mes</label>
+          <select id="filtro-mes-summary" class="sector-select">
+            <option value="">Todos los meses</option>
+            ${mesesDisponibles.map(m => `<option value="${m}">${formatMes(m)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Semana</label>
+          <select id="filtro-semana-summary" class="sector-select" disabled>
+            <option value="">Todas las semanas</option>
+          </select>
+        </div>
+      </div>
+      <div id="resumen-summary-content"></div>
+    </div>
+  `;
+
+  // Event listeners para filtros
+  const tipoRegistroSelect = document.getElementById('tipo-registro-summary');
+  const nombreFilter = document.getElementById('filtro-nombre-summary');
+  const loteFilter = document.getElementById('filtro-lote-summary');
+  const mesFilter = document.getElementById('filtro-mes-summary');
+  const semanaFilter = document.getElementById('filtro-semana-summary');
+  const nombreWrap = document.getElementById('filtro-nombre-wrap');
+  const loteWrap = document.getElementById('filtro-lote-wrap');
+  
+  tipoRegistroSelect.addEventListener('change', () => {
+    const tipo = tipoRegistroSelect.value;
+    
+    // Mostrar/ocultar filtros según el tipo seleccionado
+    nombreWrap.classList.toggle('search-hidden', tipo !== 'nombres');
+    loteWrap.classList.toggle('search-hidden', tipo !== 'lotes');
+    
+    // Resetear filtros cuando cambia el tipo de registro
+    if (tipo === 'todos') {
+      nombreFilter.value = 'Todos';
+      loteFilter.value = 'Todos';
+    } else if (tipo === 'nombres') {
+      loteFilter.value = 'Todos';
+    } else if (tipo === 'lotes') {
+      nombreFilter.value = 'Todos';
+    }
+    
+    const mes = mesFilter.value;
+    const semana = semanaFilter.value;
+    const nombre = nombreFilter.value;
+    const lote = loteFilter.value;
+    renderResumenSummaryContent(tipo, instalaciones, mes, semana, nombre, lote);
+  });
+  
+  nombreFilter.addEventListener('change', () => {
+    const tipo = tipoRegistroSelect.value;
+    const mes = mesFilter.value;
+    const semana = semanaFilter.value;
+    const nombre = nombreFilter.value;
+    renderResumenSummaryContent(tipo, instalaciones, mes, semana, nombre, '');
+  });
+  
+  loteFilter.addEventListener('change', () => {
+    const tipo = tipoRegistroSelect.value;
+    const mes = mesFilter.value;
+    const semana = semanaFilter.value;
+    const lote = loteFilter.value;
+    renderResumenSummaryContent(tipo, instalaciones, mes, semana, '', lote);
+  });
+  
+  mesFilter.addEventListener('change', () => {
+    const mesSeleccionado = mesFilter.value;
+    if (mesSeleccionado) {
+      const semanas = obtenerSemanasDelMesBaterias(mesSeleccionado, instalaciones);
+      semanaFilter.innerHTML = '<option value="">Todas las semanas</option>' + 
+        semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+      semanaFilter.disabled = false;
+    } else {
+      semanaFilter.innerHTML = '<option value="">Todas las semanas</option>';
+      semanaFilter.disabled = true;
+    }
+    const tipo = tipoRegistroSelect.value;
+    const nombre = nombreFilter.value;
+    const lote = loteFilter.value;
+    renderResumenSummaryContent(tipo, instalaciones, mesFilter.value, semanaFilter.value, nombre, lote);
+  });
+  
+  semanaFilter.addEventListener('change', () => {
+    const tipo = tipoRegistroSelect.value;
+    const nombre = nombreFilter.value;
+    const lote = loteFilter.value;
+    renderResumenSummaryContent(tipo, instalaciones, mesFilter.value, semanaFilter.value, nombre, lote);
+  });
+
+  // Renderizar inicial con "Seleccionar" (no mostrar nada)
+  renderResumenSummaryContent(tipoRegistroSelect.value, instalaciones);
+}
+
+function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '', nombre = '', lote = '') {
+  const content = document.getElementById('resumen-summary-content');
+  
+  // Si es "Seleccionar", no mostrar nada
+  if (tipo === 'Seleccionar' || tipo === '') {
+    content.innerHTML = '';
+    return;
+  }
+  
+  // Filtrar por mes y semana si se proporcionan
+  let instalacionesFiltradas = instalaciones;
+  if (mes !== '' || semana !== '') {
+    instalacionesFiltradas = instalaciones.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesInstalacion = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      const dia = fecha.getDate();
+      const semanaInstalacion = Math.ceil(dia / 7);
+      
+      const coincideMes = mes === '' || mesInstalacion === mes;
+      const coincideSemana = semana === '' || semanaInstalacion === parseInt(semana);
+      
+      return coincideMes && coincideSemana;
+    });
+  }
+  
+  // Filtrar por nombre de batería si se proporciona y no es "Todos"
+  if (nombre && nombre !== 'Todos') {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.modeloNombre === nombre);
+  }
+  
+  // Filtrar por lote si se proporciona y no es "Todos"
+  if (lote && lote !== 'Todos') {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.loteNombre === lote);
+  }
+  
+  if (tipo === 'todos') {
+    // Mostrar agrupado por nombres y por lotes
+    // Agrupar por nombre de batería
+    const agrupadoPorNombre = {};
+    instalacionesFiltradas.forEach(i => {
+      if (!agrupadoPorNombre[i.modeloNombre]) {
+        agrupadoPorNombre[i.modeloNombre] = [];
+      }
+      agrupadoPorNombre[i.modeloNombre].push(i);
+    });
+
+    // Agrupar por lote
+    const agrupadoPorLote = {};
+    instalacionesFiltradas.forEach(i => {
+      const loteKey = i.loteNombre;
+      if (!agrupadoPorLote[loteKey]) {
+        agrupadoPorLote[loteKey] = [];
+      }
+      agrupadoPorLote[loteKey].push(i);
+    });
+
+    content.innerHTML = `
+      <div class="resumen-baterias-margenes">
+        <h4>📋 Por Nombres de Batería</h4>
+        ${Object.keys(agrupadoPorNombre).map((nombre, index) => `
+          <div class="resumen-baterias-margen">
+            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoPorNombre[nombre].length} registros)</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Piscina</th>
+                    <th>Tolva</th>
+                    <th>Fecha</th>
+                    <th>Lote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${agrupadoPorNombre[nombre].map(i => `
+                    <tr>
+                      <td>${i.piscinaNumero}</td>
+                      <td>${i.tolvaNumero}</td>
+                      <td>${formatDate(i.fechaInstalacion)}</td>
+                      <td>${i.loteNombre}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="resumen-baterias-margenes" style="margin-top: 30px;">
+        <h4>📦 Por Lotes</h4>
+        ${Object.keys(agrupadoPorLote).map((loteKey, index) => `
+          <div class="resumen-baterias-margen">
+            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoPorLote[loteKey].length} registros)</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Modelo</th>
+                    <th>Amperaje</th>
+                    <th>Piscina</th>
+                    <th>Tolva</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${agrupadoPorLote[loteKey].map(i => `
+                    <tr>
+                      <td>${i.modeloNombre}</td>
+                      <td>${i.amperaje}A</td>
+                      <td>${i.piscinaNumero}</td>
+                      <td>${i.tolvaNumero}</td>
+                      <td>${formatDate(i.fechaInstalacion)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (tipo === 'nombres') {
     // Agrupar por nombre de batería
     const agrupado = {};
-    instalaciones.forEach(i => {
+    instalacionesFiltradas.forEach(i => {
       if (!agrupado[i.modeloNombre]) {
         agrupado[i.modeloNombre] = [];
       }
@@ -2029,22 +3656,36 @@ function renderResumenBaterias(tipo, instalaciones) {
         ${Object.keys(agrupado).map((nombre, index) => `
           <div class="resumen-baterias-margen">
             <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros)</div>
-            <ul class="resumen-list">
-              ${agrupado[nombre].map(i => `
-                <li>
-                  <span>Piscina ${i.piscinaNumero} - Tolva ${i.tolvaNumero} - ${formatDate(i.fechaInstalacion)}</span>
-                  <span>${i.loteNombre}</span>
-                </li>
-              `).join('')}
-            </ul>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Piscina</th>
+                    <th>Tolva</th>
+                    <th>Fecha</th>
+                    <th>Lote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${agrupado[nombre].map(i => `
+                    <tr>
+                      <td>${i.piscinaNumero}</td>
+                      <td>${i.tolvaNumero}</td>
+                      <td>${formatDate(i.fechaInstalacion)}</td>
+                      <td>${i.loteNombre}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
           </div>
         `).join('')}
       </div>
     `;
-  } else {
+  } else if (tipo === 'lotes') {
     // Agrupar por lote
     const agrupado = {};
-    instalaciones.forEach(i => {
+    instalacionesFiltradas.forEach(i => {
       const loteKey = i.loteNombre;
       if (!agrupado[loteKey]) {
         agrupado[loteKey] = [];
@@ -2057,14 +3698,30 @@ function renderResumenBaterias(tipo, instalaciones) {
         ${Object.keys(agrupado).map((loteKey, index) => `
           <div class="resumen-baterias-margen">
             <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros)</div>
-            <ul class="resumen-list">
-              ${agrupado[loteKey].map(i => `
-                <li>
-                  <span>${i.modeloNombre} (${i.amperaje}A) - Piscina ${i.piscinaNumero} - Tolva ${i.tolvaNumero}</span>
-                  <span>${formatDate(i.fechaInstalacion)}</span>
-                </li>
-              `).join('')}
-            </ul>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Modelo</th>
+                    <th>Amperaje</th>
+                    <th>Piscina</th>
+                    <th>Tolva</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${agrupado[loteKey].map(i => `
+                    <tr>
+                      <td>${i.modeloNombre}</td>
+                      <td>${i.amperaje}A</td>
+                      <td>${i.piscinaNumero}</td>
+                      <td>${i.tolvaNumero}</td>
+                      <td>${formatDate(i.fechaInstalacion)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -2072,17 +3729,546 @@ function renderResumenBaterias(tipo, instalaciones) {
   }
 }
 
+async function renderResumenBateriasPage(sector) {
+  try {
+    const content = document.getElementById('resumen-general-content');
+    const instalaciones = await fetchInstalacionesBaterias(sector);
+    
+    // Resetear activeBateriasTab al valor por defecto
+    activeBateriasTab = 'nombres';
+
+    // Generar lista de meses disponibles
+    const mesesDisponibles = obtenerMesesDisponibles(instalaciones);
+    const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
+    // Obtener lista única de nombres de baterías y lotes
+    const nombresUnicos = [...new Set(instalaciones.map(i => i.modeloNombre).filter(n => n))].sort();
+    const lotesUnicos = [...new Set(instalaciones.map(i => i.loteNombre).filter(l => l))].sort();
+
+    content.innerHTML = `
+      <div class="resumen-sector-header">
+        <h3 id="resumen-sector-label">${sector}</h3>
+        <div class="resumen-baterias-filters">
+          <div class="form-group">
+            <label>Vista</label>
+            <select id="filter-vista" class="form-select">
+              <option value="nombres">Por Nombres</option>
+              <option value="lotes">Por Lotes</option>
+              <option value="combinada">Vista Combinada</option>
+            </select>
+          </div>
+          <div class="form-group" id="filtro-nombre-wrap">
+            <label>Nombre de Batería</label>
+            <select id="filter-nombre" class="form-select">
+              <option value="Todos">Todos</option>
+              ${nombresUnicos.map(n => `<option value="${n}">${n}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group search-hidden" id="filtro-lote-wrap">
+            <label>Lote</label>
+            <select id="filter-lote" class="form-select">
+              <option value="Todos">Todos</option>
+              ${lotesUnicos.map(l => `<option value="${l}">${l}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mes</label>
+            <select id="filter-mes" class="form-select">
+              <option value="">Todos los meses</option>
+              ${mesesDisponibles.map(m => `<option value="${m}" ${m === mesActual ? 'selected' : ''}>${formatMes(m)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Semana</label>
+            <select id="filter-semana" class="form-select" disabled>
+              <option value="">Todas las semanas</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
+      </div>
+      <div class="resumen-layout">
+        <div class="resumen-main">
+          <div class="card resumen-panel resumen-panel-general baterias-panel">
+            <span class="resumen-panel-title" id="resumen-general-title">Resumen de Baterías</span>
+            <div id="resumen-baterias-content"></div>
+          </div>
+        </div>
+        <div class="resumen-charts">
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica de Barras</span>
+            <canvas id="chart-bar"></canvas>
+          </div>
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica Circular</span>
+            <canvas id="chart-pie"></canvas>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Re-adjuntar event listener al botón de exportar Excel
+    document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+
+    // Event listeners para filtros
+    const filterVista = document.getElementById('filter-vista');
+    const filterNombre = document.getElementById('filter-nombre');
+    const filterLote = document.getElementById('filter-lote');
+    const filterMes = document.getElementById('filter-mes');
+    const filterSemana = document.getElementById('filter-semana');
+    const nombreWrap = document.getElementById('filtro-nombre-wrap');
+    const loteWrap = document.getElementById('filtro-lote-wrap');
+
+    // Inicializar selector de semana si hay un mes seleccionado por defecto
+    if (filterMes.value) {
+      const semanas = obtenerSemanasDelMes(filterMes.value, instalaciones);
+      filterSemana.innerHTML = '<option value="">Todas las semanas</option>' + 
+        semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+      filterSemana.disabled = false;
+    }
+
+    filterVista.addEventListener('change', () => {
+      const vista = filterVista.value;
+      
+      // Mostrar/ocultar filtros según la vista seleccionada
+      nombreWrap.classList.toggle('search-hidden', vista !== 'nombres');
+      loteWrap.classList.toggle('search-hidden', vista !== 'lotes');
+      
+      // Resetear filtros cuando cambia la vista
+      if (vista === 'nombres') {
+        filterLote.value = 'Todos';
+      } else if (vista === 'lotes') {
+        filterNombre.value = 'Todos';
+      } else if (vista === 'combinada') {
+        filterNombre.value = 'Todos';
+        filterLote.value = 'Todos';
+      }
+      
+      activeBateriasTab = vista;
+      aplicarFiltrosBaterias(instalaciones);
+    });
+
+    filterNombre.addEventListener('change', () => {
+      aplicarFiltrosBaterias(instalaciones);
+    });
+
+    filterLote.addEventListener('change', () => {
+      aplicarFiltrosBaterias(instalaciones);
+    });
+
+    filterMes.addEventListener('input', () => {
+      const mesSeleccionado = filterMes.value;
+      if (mesSeleccionado) {
+        const semanas = obtenerSemanasDelMes(mesSeleccionado, instalaciones);
+        filterSemana.innerHTML = '<option value="">Todas las semanas</option>' + 
+          semanas.map(s => `<option value="${s}">Semana ${s}</option>`).join('');
+        filterSemana.disabled = false;
+      } else {
+        filterSemana.innerHTML = '<option value="">Todas las semanas</option>';
+        filterSemana.disabled = true;
+      }
+      aplicarFiltrosBaterias(instalaciones);
+    });
+
+    filterSemana.addEventListener('input', () => {
+      aplicarFiltrosBaterias(instalaciones);
+    });
+
+    // Renderizar resumen inicial por nombres
+    aplicarFiltrosBaterias(instalaciones);
+  } catch (error) {
+    console.error('Error renderizando resumen de baterías:', error);
+    const content = document.getElementById('resumen-general-content');
+    content.innerHTML = '<p class="hint-text">Error al cargar datos de baterías.</p>';
+  }
+}
+
+function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
+  const content = document.getElementById('resumen-baterias-content');
+  
+  // Si es "Seleccionar", no mostrar nada
+  if (tipo === 'Seleccionar' || tipo === '') {
+    content.innerHTML = '';
+    return;
+  }
+  
+  // Filtrar por mes y semana si se proporcionan
+  let instalacionesFiltradas = instalaciones;
+  if (mes !== '' || semana !== '') {
+    instalacionesFiltradas = instalaciones.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesInstalacion = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      const dia = fecha.getDate();
+      const semanaInstalacion = Math.ceil(dia / 7);
+      
+      const coincideMes = mes === '' || mesInstalacion === mes;
+      const coincideSemana = semana === '' || semanaInstalacion === parseInt(semana);
+      
+      return coincideMes && coincideSemana;
+    });
+  }
+  
+  if (tipo === 'todos') {
+    // Mostrar ambos: por nombres y por lotes
+    let html = '';
+    
+    // Sección por nombres
+    const agrupadoNombres = {};
+    instalacionesFiltradas.forEach(i => {
+      if (!agrupadoNombres[i.modeloNombre]) {
+        agrupadoNombres[i.modeloNombre] = [];
+      }
+      agrupadoNombres[i.modeloNombre].push(i);
+    });
+
+    html += '<h3 style="margin-bottom: 1rem; color: var(--primary);">Por Nombres</h3>';
+    html += '<div class="resumen-baterias-margenes">';
+    html += Object.keys(agrupadoNombres).map((nombre, index) => `
+      <div class="resumen-baterias-margen">
+        <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoNombres[nombre].length} registros)</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Piscina</th>
+                <th>Tolva</th>
+                <th>Fecha</th>
+                <th>Lote</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agrupadoNombres[nombre].map(i => `
+                <tr>
+                  <td>${i.piscinaNumero}</td>
+                  <td>${i.tolvaNumero}</td>
+                  <td>${formatDate(i.fechaInstalacion)}</td>
+                  <td>${i.loteNombre}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `).join('');
+    html += '</div>';
+    
+    // Sección por lotes
+    const agrupadoLotes = {};
+    instalacionesFiltradas.forEach(i => {
+      const loteKey = i.loteNombre;
+      if (!agrupadoLotes[loteKey]) {
+        agrupadoLotes[loteKey] = [];
+      }
+      agrupadoLotes[loteKey].push(i);
+    });
+
+    html += '<h3 style="margin: 2rem 0 1rem 0; color: var(--primary);">Por Lotes</h3>';
+    html += '<div class="resumen-baterias-margenes">';
+    html += Object.keys(agrupadoLotes).map((loteKey, index) => `
+      <div class="resumen-baterias-margen">
+        <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoLotes[loteKey].length} registros)</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Modelo</th>
+                <th>Amperaje</th>
+                <th>Piscina</th>
+                <th>Tolva</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${agrupadoLotes[loteKey].map(i => `
+                <tr>
+                  <td>${i.modeloNombre}</td>
+                  <td>${i.amperaje}A</td>
+                  <td>${i.piscinaNumero}</td>
+                  <td>${i.tolvaNumero}</td>
+                  <td>${formatDate(i.fechaInstalacion)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `).join('');
+    html += '</div>';
+    
+    content.innerHTML = html;
+  } else if (tipo === 'nombres') {
+    // Agrupar por nombre de batería
+    const agrupado = {};
+    instalacionesFiltradas.forEach(i => {
+      if (!agrupado[i.modeloNombre]) {
+        agrupado[i.modeloNombre] = [];
+      }
+      agrupado[i.modeloNombre].push(i);
+    });
+
+    content.innerHTML = `
+      <div class="resumen-baterias-margenes">
+        ${Object.keys(agrupado).map((nombre, index) => `
+          <div class="resumen-baterias-margen">
+            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros)</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Piscina</th>
+                    <th>Tolva</th>
+                    <th>Fecha</th>
+                    <th>Lote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${agrupado[nombre].map(i => `
+                    <tr>
+                      <td>${i.piscinaNumero}</td>
+                      <td>${i.tolvaNumero}</td>
+                      <td>${formatDate(i.fechaInstalacion)}</td>
+                      <td>${i.loteNombre}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (tipo === 'lotes') {
+    // Agrupar por lote
+    const agrupado = {};
+    instalacionesFiltradas.forEach(i => {
+      const loteKey = i.loteNombre;
+      if (!agrupado[loteKey]) {
+        agrupado[loteKey] = [];
+      }
+      agrupado[loteKey].push(i);
+    });
+
+    content.innerHTML = `
+      <div class="resumen-baterias-margenes">
+        ${Object.keys(agrupado).map((loteKey, index) => `
+          <div class="resumen-baterias-margen">
+            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros)</div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Modelo</th>
+                    <th>Amperaje</th>
+                    <th>Piscina</th>
+                    <th>Tolva</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${agrupado[loteKey].map(i => `
+                    <tr>
+                      <td>${i.modeloNombre}</td>
+                      <td>${i.amperaje}A</td>
+                      <td>${i.piscinaNumero}</td>
+                      <td>${i.tolvaNumero}</td>
+                      <td>${formatDate(i.fechaInstalacion)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (tipo === 'combinada') {
+    // Vista combinada: Modelo de batería, Amperaje, Lote, Piscina, Tolva, Fecha
+    content.innerHTML = `
+      <div class="table-wrapper-wide">
+        <table>
+          <thead>
+            <tr>
+              <th>Modelo de Batería</th>
+              <th>Amperaje</th>
+              <th>Lote</th>
+              <th>Piscina</th>
+              <th>Tolva</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${instalaciones.map(i => `
+              <tr>
+                <td><strong>${i.modeloNombre}</strong></td>
+                <td>${i.amperaje}A</td>
+                <td>${i.loteNombre}</td>
+                <td>${i.piscinaNumero}</td>
+                <td>${i.tolvaNumero}</td>
+                <td>${formatDate(i.fechaInstalacion)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+}
+
+function obtenerMesesDisponibles(instalaciones) {
+  const meses = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    meses.add(mesKey);
+  });
+  return Array.from(meses).sort().reverse();
+}
+
+function formatMes(mesKey) {
+  const [year, month] = mesKey.split('-');
+  const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${nombresMeses[parseInt(month) - 1]} ${year}`;
+}
+
+function obtenerSemanasDelMes(mesKey, instalaciones) {
+  const semanas = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesInstalacion = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    if (mesInstalacion === mesKey) {
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      semanas.add(semana);
+    }
+  });
+  return Array.from(semanas).sort((a, b) => a - b);
+}
+
+function obtenerMesesDisponiblesBaterias(instalaciones) {
+  const meses = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    meses.add(mesKey);
+  });
+  return Array.from(meses).sort().reverse();
+}
+
+function obtenerSemanasDelMesBaterias(mesKey, instalaciones) {
+  const semanas = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesInstalacion = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    if (mesInstalacion === mesKey) {
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      semanas.add(semana);
+    }
+  });
+  return Array.from(semanas).sort((a, b) => a - b);
+}
+
+function aplicarFiltrosBaterias(instalaciones) {
+  const filterMes = document.getElementById('filter-mes');
+  const filterSemana = document.getElementById('filter-semana');
+  const filterNombre = document.getElementById('filter-nombre');
+  const filterLote = document.getElementById('filter-lote');
+  
+  let instalacionesFiltradas = [...instalaciones];
+  
+  // Filtrar por mes
+  if (filterMes && filterMes.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      return mesKey === filterMes.value;
+    });
+  }
+  
+  // Filtrar por semana
+  if (filterSemana && filterSemana.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const dia = fecha.getDate();
+      const semana = Math.ceil(dia / 7);
+      return semana === parseInt(filterSemana.value);
+    });
+  }
+  
+  // Filtrar por nombre de batería si se proporciona y no es "Todos"
+  if (filterNombre && filterNombre.value && filterNombre.value !== 'Todos') {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.modeloNombre === filterNombre.value);
+  }
+  
+  // Filtrar por lote si se proporciona y no es "Todos"
+  if (filterLote && filterLote.value && filterLote.value !== 'Todos') {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.loteNombre === filterLote.value);
+  }
+  
+  // Renderizar según la vista activa
+  renderResumenBaterias(activeBateriasTab, instalacionesFiltradas);
+  
+  // Generar gráficas basadas en los datos filtrados
+  updateBateriasCharts(instalacionesFiltradas);
+}
+
+function updateBateriasCharts(instalaciones) {
+  if (instalaciones.length === 0) {
+    clearCharts();
+    return;
+  }
+  
+  // Agrupar datos para gráficas según la vista activa
+  let labels = [];
+  let data = [];
+  
+  if (activeBateriasTab === 'nombres') {
+    // Agrupar por nombre de batería
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.modeloNombre]) {
+        agrupado[i.modeloNombre] = 0;
+      }
+      agrupado[i.modeloNombre]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  } else if (activeBateriasTab === 'lotes') {
+    // Agrupar por lote
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.loteNombre]) {
+        agrupado[i.loteNombre] = 0;
+      }
+      agrupado[i.loteNombre]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  } else if (activeBateriasTab === 'combinada') {
+    // Agrupar por nombre de batería para vista combinada
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.modeloNombre]) {
+        agrupado[i.modeloNombre] = 0;
+      }
+      agrupado[i.modeloNombre]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  }
+  
+  // Crear gráficas
+  createBarChart(labels, data, 'Cantidad de Instalaciones');
+  createPieChart(labels, data, 'Distribución');
+}
+
 // Modal para modelo de batería
 window.openModalModeloBateria = async function(id = null) {
   editingId = id;
   const sector = document.getElementById('filter-sector-trabajos').value;
   
-  // Cargar modelos desde API si no están en data
-  if (!data.modelosBaterias) {
-    data.modelosBaterias = await fetchModelosBaterias(sector);
-  }
-  
-  const modelos = data.modelosBaterias || [];
+  // Siempre obtener datos frescos de la API
+  const modelos = await fetchModelosBaterias(sector);
   const modelo = id ? modelos.find(m => m.id === id) : {};
 
   document.getElementById('modal-title').textContent = id ? 'Actualizar Modelo de Batería' : 'Nuevo Modelo de Batería';
@@ -2095,11 +4281,11 @@ window.openModalModeloBateria = async function(id = null) {
     </div>
     <div class="form-group">
       <label>Nombre de Batería * (sin espacios)</label>
-      <input type="text" id="f-nombre" value="${modelo.nombre || ''}" placeholder="Ej: TrojanL16">
+      <input type="text" id="f-nombre" value="${modelo.nombre || ''}" placeholder="Ej: TrojanL16" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     <div class="form-group">
       <label>Amperaje * (solo números)</label>
-      <input type="text" id="f-amperaje" value="${modelo.amperaje || ''}" placeholder="Ej: 360" inputmode="numeric">
+      <input type="text" id="f-amperaje" value="${modelo.amperaje || ''}" placeholder="Ej: 360" inputmode="numeric" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
   `;
 
@@ -2113,10 +4299,10 @@ async function saveModeloBateria() {
   const nombre = document.getElementById('f-nombre').value.trim();
   const amperaje = document.getElementById('f-amperaje').value.trim();
 
-  if (!nombre) { alert('Debe ingresar el nombre de la batería.'); return; }
-  if (/\s/.test(nombre)) { alert('El nombre no puede contener espacios.'); return; }
-  if (!amperaje) { alert('Debe ingresar el amperaje.'); return; }
-  if (!/^\d+$/.test(amperaje)) { alert('El amperaje debe ser un número.'); return; }
+  if (!nombre) { showToast('Debe ingresar el nombre de la batería.'); return; }
+  if (/\s/.test(nombre)) { showToast('El nombre no puede contener espacios.'); return; }
+  if (!amperaje) { showToast('Debe ingresar el amperaje.'); return; }
+  if (!/^\d+$/.test(amperaje)) { showToast('El amperaje debe ser un número.'); return; }
 
   const modelo = {
     id: editingId || generateId(),
@@ -2126,8 +4312,11 @@ async function saveModeloBateria() {
   };
 
   try {
-    const response = await fetch(`${API_BASE}/modelos-baterias`, {
-      method: 'POST',
+    const url = editingId ? `${API_BASE}/modelos-baterias/${editingId}` : `${API_BASE}/modelos-baterias`;
+    const method = editingId ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(modelo)
     });
@@ -2137,21 +4326,21 @@ async function saveModeloBateria() {
     await showBateriasSubsection('modelos');
   } catch (error) {
     console.error('Error saving modelo batería:', error);
-    alert('Error al guardar modelo de batería. Por favor intente nuevamente.');
+    showToast('Error al guardar modelo de batería. Por favor intente nuevamente.');
   }
 }
 
 window.deleteModeloBateria = async function(id) {
-  if (!confirm('¿Eliminar este modelo de batería?')) return;
   try {
     const response = await fetch(`${API_BASE}/modelos-baterias/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar modelo de batería');
+    showToast('Modelo de batería eliminado');
     await showBateriasSubsection('modelos');
   } catch (error) {
     console.error('Error deleting modelo batería:', error);
-    alert('Error al eliminar modelo de batería. Por favor intente nuevamente.');
+    showToast('Error al eliminar modelo de batería. Por favor intente nuevamente.');
   }
 };
 
@@ -2174,7 +4363,7 @@ window.openModalLoteBateria = async function(id = null) {
     </div>
     <div class="form-group">
       <label>Nombre y Número del Lote *</label>
-      <input type="text" id="f-nombre-completo" value="${lote.nombre_completo || ''}" placeholder="Ej: LoteA Ab1215/2026">
+      <input type="text" id="f-nombre-completo" value="${lote.nombre_completo || ''}" placeholder="Ej: LoteA Ab1215/2026" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
   `;
 
@@ -2186,7 +4375,7 @@ async function saveLoteBateria() {
   const sector = document.getElementById('filter-sector-trabajos').value;
   const nombreCompleto = document.getElementById('f-nombre-completo').value.trim();
 
-  if (!nombreCompleto) { alert('Debe ingresar el nombre y número del lote.'); return; }
+  if (!nombreCompleto) { showToast('Debe ingresar el nombre y número del lote.'); return; }
 
   const lote = {
     id: editingId || generateId(),
@@ -2210,21 +4399,21 @@ async function saveLoteBateria() {
     await showBateriasSubsection('lotes');
   } catch (error) {
     console.error('Error saving lote batería:', error);
-    alert('Error al guardar lote de batería. Por favor intente nuevamente.');
+    showToast('Error al guardar lote de batería. Por favor intente nuevamente.');
   }
 }
 
 window.deleteLoteBateria = async function(id) {
-  if (!confirm('¿Eliminar este lote de batería?')) return;
   try {
     const response = await fetch(`${API_BASE}/lotes-baterias/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar lote de batería');
+    showToast('Lote de batería eliminado');
     await showBateriasSubsection('lotes');
   } catch (error) {
     console.error('Error deleting lote batería:', error);
-    alert('Error al eliminar lote de batería. Por favor intente nuevamente.');
+    showToast('Error al eliminar lote de batería. Por favor intente nuevamente.');
   }
 };
 
@@ -2267,7 +4456,7 @@ window.openModalInstalacionBateria = async function(idOrPiscinas) {
     </div>
     <div class="form-group">
       <label>Número de Tolva *</label>
-      <input type="text" id="f-tolva-numero" placeholder="Ej: 1">
+      <input type="text" id="f-tolva-numero" placeholder="Ej: 1" ${!editingId ? 'autocomplete="off"' : ''}>
     </div>
     <div class="form-group">
       <label>Fecha</label>
@@ -2317,7 +4506,7 @@ async function loadModelosAndLotesForInstalacion(sector) {
   const loteSelect = document.getElementById('f-lote-bateria');
 
   modeloSelect.innerHTML = '<option value="">— Seleccione un modelo —</option>' +
-    modelos.map(m => `<option value="${m.id}">${m.nombre} (${m.amperaje}A)</option>`).join('');
+    modelos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
 
   loteSelect.innerHTML = '<option value="">— Seleccione un lote —</option>' +
     lotes.map(l => `<option value="${l.id}">${l.nombre_completo}</option>`).join('');
@@ -2330,10 +4519,10 @@ async function saveInstalacionBateria() {
   const piscinaNumero = document.getElementById('f-piscina-numero').value;
   const tolvaNumero = document.getElementById('f-tolva-numero').value.trim();
 
-  if (!modeloBateriaId) { alert('Debe seleccionar un modelo de batería.'); return; }
-  if (!loteBateriaId) { alert('Debe seleccionar un lote de batería.'); return; }
-  if (!piscinaNumero) { alert('Debe seleccionar una piscina.'); return; }
-  if (!tolvaNumero) { alert('Debe ingresar el número de tolva.'); return; }
+  if (!modeloBateriaId) { showToast('Debe seleccionar un modelo de batería.'); return; }
+  if (!loteBateriaId) { showToast('Debe seleccionar un lote de batería.'); return; }
+  if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); return; }
+  if (!tolvaNumero) { showToast('Debe ingresar el número de tolva.'); return; }
 
   const instalacion = {
     id: editingId || generateId(),
@@ -2341,7 +4530,8 @@ async function saveInstalacionBateria() {
     modelo_bateria_id: modeloBateriaId,
     lote_bateria_id: loteBateriaId,
     piscina_numero: piscinaNumero,
-    tolva_numero: tolvaNumero
+    tolva_numero: tolvaNumero,
+    fecha_instalacion: new Date().toISOString()
   };
 
   try {
@@ -2360,21 +4550,21 @@ async function saveInstalacionBateria() {
     await showBateriasSubsection('instalaciones');
   } catch (error) {
     console.error('Error saving instalación batería:', error);
-    alert('Error al guardar instalación de batería. Por favor intente nuevamente.');
+    showToast('Error al guardar instalación de batería. Por favor intente nuevamente.');
   }
 }
 
 window.deleteInstalacionBateria = async function(id) {
-  if (!confirm('¿Eliminar esta instalación de batería?')) return;
   try {
     const response = await fetch(`${API_BASE}/instalaciones-baterias/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar instalación de batería');
+    showToast('Instalación de batería eliminada');
     await showBateriasSubsection('instalaciones');
   } catch (error) {
     console.error('Error deleting instalación batería:', error);
-    alert('Error al eliminar instalación de batería. Por favor intente nuevamente.');
+    showToast('Error al eliminar instalación de batería. Por favor intente nuevamente.');
   }
 };
 
