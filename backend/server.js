@@ -11,17 +11,19 @@ const PORT = process.env.PORT || 3000;
 // Middleware - CORS configurado para permitir cookies
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  // Para desarrollo, permitir desde localhost con cualquier puerto
-  if (origin && origin.startsWith('http://localhost')) {
+  console.log('🌐 Request origin:', origin);
+  console.log('🌐 Request path:', req.path);
+  
+  // Para desarrollo y producción, permitir el origen
+  if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    // Si no hay origin (misma solicitud), no necesitamos CORS
-    return next();
   }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request handled');
     return res.sendStatus(200);
   }
   next();
