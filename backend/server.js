@@ -16,7 +16,13 @@ app.use(cors({
 app.use(express.json());
 
 // Servir archivos estáticos del frontend
-app.use(express.static(require('path').join(__dirname, '..')));
+app.use(express.static(require('path').join(__dirname, '..'), {
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // Session middleware
 app.use(session({
