@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3000/api' 
+  : '/api';
 const SECTORS = ['Sector 1', 'Sector 2', 'Sector 3', 'Sector 4'];
 const ESTADOS_MOTOR = [
   'Contenedor por Mantenimiento',
