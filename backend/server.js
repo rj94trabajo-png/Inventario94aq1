@@ -58,6 +58,75 @@ app.use(session({
 // Inicializar base de datos
 initDatabase().catch(console.error);
 
+// Crear usuarios automáticamente si no existen
+async function ensureUsersExist() {
+  const bcrypt = require('bcrypt');
+  try {
+    const client = await pool.connect();
+    try {
+      const users = [
+        {
+          username: 'Sector1',
+          password: '0marsa20261',
+          rol: 'sector',
+          sectoresPermitidos: ['Sector 1']
+        },
+        {
+          username: 'Sector2',
+          password: '0marsa20262',
+          rol: 'sector',
+          sectoresPermitidos: ['Sector 2']
+        },
+        {
+          username: 'Sector3',
+          password: '0marsa20263',
+          rol: 'sector',
+          sectoresPermitidos: ['Sector 3']
+        },
+        {
+          username: 'Sector4',
+          password: '0marsa20264',
+          rol: 'sector',
+          sectoresPermitidos: ['Sector 4']
+        },
+        {
+          username: 'Administrador',
+          password: 'Admin',
+          rol: 'admin',
+          sectoresPermitidos: ['Sector 1', 'Sector 2', 'Sector 3', 'Sector 4']
+        }
+      ];
+
+      for (const user of users) {
+        const result = await client.query(
+          'SELECT * FROM usuarios WHERE username = $1',
+          [user.username]
+        );
+
+        if (result.rows.length === 0) {
+          const hashedPassword = await bcrypt.hash(user.password, 10);
+          const id = user.username.toLowerCase() + '-' + Date.now();
+          
+          await client.query(
+            `INSERT INTO usuarios (id, username, password, rol, sectores_permitidos)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [id, user.username, hashedPassword, user.rol, user.sectoresPermitidos]
+          );
+          
+          console.log(`✅ Usuario '${user.username}' creado automáticamente`);
+        }
+      }
+      console.log('✅ Verificación de usuarios completada');
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error verificando usuarios:', error);
+  }
+}
+
+ensureUsersExist();
+
 // Middleware de autenticación
 const requireAuth = (req, res, next) => {
   if (req.session.user) {
