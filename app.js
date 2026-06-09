@@ -73,13 +73,43 @@ async function checkSession() {
       const user = await response.json();
       currentUser = user;
       sectoresPermitidos = user.sectoresPermitidos || [];
+      // Guardar en localStorage como respaldo
+      localStorage.setItem('currentUser', JSON.stringify(user));
       applySectorRestrictions();
     } else {
-      showLoginModal();
+      // Si la sesión del servidor falla, intentar usar localStorage
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser);
+          currentUser = user;
+          sectoresPermitidos = user.sectoresPermitidos || [];
+          applySectorRestrictions();
+        } catch (e) {
+          localStorage.removeItem('currentUser');
+          showLoginModal();
+        }
+      } else {
+        showLoginModal();
+      }
     }
   } catch (error) {
     console.error('Error checking session:', error);
-    showLoginModal();
+    // Si hay error de red, intentar usar localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        currentUser = user;
+        sectoresPermitidos = user.sectoresPermitidos || [];
+        applySectorRestrictions();
+      } catch (e) {
+        localStorage.removeItem('currentUser');
+        showLoginModal();
+      }
+    } else {
+      showLoginModal();
+    }
   }
 }
 
@@ -108,6 +138,8 @@ async function handleLogin() {
       const user = await response.json();
       currentUser = user;
       sectoresPermitidos = user.sectoresPermitidos || [];
+      // Guardar en localStorage como respaldo
+      localStorage.setItem('currentUser', JSON.stringify(user));
       
       // Limpiar datos en memoria de la sesión anterior
       data.motores = [];
@@ -170,6 +202,8 @@ async function handleLogout() {
     });
     currentUser = null;
     sectoresPermitidos = [];
+    // Limpiar localStorage
+    localStorage.removeItem('currentUser');
     
     // Limpiar datos en memoria
     data.motores = [];

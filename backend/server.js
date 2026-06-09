@@ -8,15 +8,16 @@ const { pool, initDatabase } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware - CORS solo para orígenes diferentes
+// Middleware - CORS configurado para permitir cookies
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  // Permitir solicitudes desde el mismo origen sin CORS
-  if (!origin || origin === req.headers.host) {
+  // Para desarrollo, permitir desde localhost con cualquier puerto
+  if (origin && origin.startsWith('http://localhost')) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    // Si no hay origin (misma solicitud), no necesitamos CORS
     return next();
   }
-  // CORS para orígenes externos
-  res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -46,9 +47,11 @@ app.use(session({
     tableName: 'session'
   }),
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/'
   }
 }));
 
