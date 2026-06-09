@@ -8,11 +8,23 @@ const { pool, initDatabase } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// Middleware - CORS solo para orígenes diferentes
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  // Permitir solicitudes desde el mismo origen sin CORS
+  if (!origin || origin === req.headers.host) {
+    return next();
+  }
+  // CORS para orígenes externos
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 app.use(express.json());
 
 // Servir archivos estáticos del frontend
