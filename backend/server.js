@@ -45,6 +45,34 @@ const requireAuth = (req, res, next) => {
   }
 };
 
+// Middleware de verificación de permisos por sector
+const checkSectorPermission = (req, res, next) => {
+  const user = req.session.user;
+  
+  // El administrador tiene acceso a todos los sectores
+  if (user.rol === 'admin') {
+    return next();
+  }
+  
+  // Obtener el sector de la solicitud
+  const sector = req.body.sector || req.query.sector;
+  
+  if (!sector) {
+    return res.status(400).json({ error: 'Sector no especificado' });
+  }
+  
+  // Verificar si el usuario tiene permiso para este sector
+  // Normalizar ambos valores para comparación (eliminar espacios extras)
+  const normalizedSector = sector.replace(/\s+/g, ' ').trim();
+  const normalizedPermittedSectors = user.sectoresPermitidos.map(s => s.replace(/\s+/g, ' ').trim());
+  
+  if (!normalizedPermittedSectors.includes(normalizedSector)) {
+    return res.status(403).json({ error: 'No tienes permiso para acceder a este sector' });
+  }
+  
+  next();
+};
+
 // Aplicar middleware de autenticación a todas las rutas de la API excepto login, logout y session
 app.use('/api', (req, res, next) => {
   // Rutas públicas que no requieren autenticación
@@ -95,18 +123,35 @@ app.get('/api/piscinas/:id', async (req, res) => {
 });
 
 // Crear o actualizar piscina
-app.post('/api/piscinas', async (req, res) => {
+app.post('/api/piscinas', checkSectorPermission, async (req, res) => {
   const { id, sector, numero, nombre } = req.body;
   
   try {
-    const query = `
-      INSERT INTO piscinas (id, sector, numero, nombre)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (sector, numero) 
-      DO UPDATE SET nombre = EXCLUDED.nombre
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, numero, nombre]);
+    // Verificar si ya existe una piscina con este ID
+    const existingCheck = await pool.query('SELECT id FROM piscinas WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE piscinas 
+        SET sector = $1, numero = $2, nombre = $3
+        WHERE id = $4
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, numero, nombre, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO piscinas (id, sector, numero, nombre)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (sector, numero) 
+        DO UPDATE SET nombre = EXCLUDED.nombre
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, numero, nombre]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando piscina:', error);
@@ -137,7 +182,7 @@ app.put('/api/piscinas/:id', async (req, res) => {
 });
 
 // Eliminar piscina
-app.delete('/api/piscinas/:id', async (req, res) => {
+app.delete('/api/piscinas/:id', checkSectorPermission, async (req, res) => {
   try {
     await pool.query('DELETE FROM piscinas WHERE id = $1', [req.params.id]);
     res.json({ message: 'Piscina eliminada' });
@@ -200,7 +245,7 @@ app.get('/api/motores/codigo/:codigo', async (req, res) => {
 });
 
 // Crear motor
-app.post('/api/motores', async (req, res) => {
+app.post('/api/motores', checkSectorPermission, async (req, res) => {
   const { id, sector, codigo, estado_motor, piscina_id } = req.body;
   
   // Validaciones
@@ -212,14 +257,31 @@ app.post('/api/motores', async (req, res) => {
     // Convertir string vacío a null
     const piscinaIdValue = piscina_id && piscina_id.trim() !== '' ? piscina_id : null;
     
-    const query = `
-      INSERT INTO motores (id, sector, codigo, estado_motor, piscina_id)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (codigo) 
-      DO UPDATE SET sector = EXCLUDED.sector, estado_motor = EXCLUDED.estado_motor, piscina_id = EXCLUDED.piscina_id
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, codigo, estado_motor, piscinaIdValue]);
+    // Verificar si ya existe un motor con este ID
+    const existingCheck = await pool.query('SELECT id FROM motores WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE motores 
+        SET sector = $1, codigo = $2, estado_motor = $3, piscina_id = $4
+        WHERE id = $5
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, codigo, estado_motor, piscinaIdValue, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO motores (id, sector, codigo, estado_motor, piscina_id)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (codigo) 
+        DO UPDATE SET sector = EXCLUDED.sector, estado_motor = EXCLUDED.estado_motor, piscina_id = EXCLUDED.piscina_id
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, codigo, estado_motor, piscinaIdValue]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando motor:', error);
@@ -258,7 +320,7 @@ app.put('/api/motores/:id', async (req, res) => {
 });
 
 // Eliminar motor
-app.delete('/api/motores/:id', async (req, res) => {
+app.delete('/api/motores/:id', checkSectorPermission, async (req, res) => {
   try {
     await pool.query('DELETE FROM motores WHERE id = $1', [req.params.id]);
     res.json({ message: 'Motor eliminado' });
@@ -338,14 +400,31 @@ app.post('/api/equipos', async (req, res) => {
     const hidrofosValue = hidrofos !== undefined && hidrofos !== '' ? parseInt(hidrofos) || 0 : 0;
     const motoresValue = motores !== undefined && motores !== '' ? parseInt(motores) || 0 : 0;
     
-    const query = `
-      INSERT INTO equipos (id, sector, piscina_id, estado_piscina, tolvas, sf200, hidrofos, motores, estado_ema)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (sector, piscina_id) 
-      DO UPDATE SET estado_piscina = EXCLUDED.estado_piscina, tolvas = EXCLUDED.tolvas, sf200 = EXCLUDED.sf200, hidrofos = EXCLUDED.hidrofos, motores = EXCLUDED.motores, estado_ema = EXCLUDED.estado_ema
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, piscina_id, estado_piscina, tolvasValue, sf200Value, hidrofosValue, motoresValue, estado_ema]);
+    // Verificar si ya existe un equipo con este ID
+    const existingCheck = await pool.query('SELECT id FROM equipos WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE equipos 
+        SET sector = $1, piscina_id = $2, estado_piscina = $3, tolvas = $4, sf200 = $5, hidrofos = $6, motores = $7, estado_ema = $8
+        WHERE id = $9
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, piscina_id, estado_piscina, tolvasValue, sf200Value, hidrofosValue, motoresValue, estado_ema, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO equipos (id, sector, piscina_id, estado_piscina, tolvas, sf200, hidrofos, motores, estado_ema)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (sector, piscina_id) 
+        DO UPDATE SET estado_piscina = EXCLUDED.estado_piscina, tolvas = EXCLUDED.tolvas, sf200 = EXCLUDED.sf200, hidrofos = EXCLUDED.hidrofos, motores = EXCLUDED.motores, estado_ema = EXCLUDED.estado_ema
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, piscina_id, estado_piscina, tolvasValue, sf200Value, hidrofosValue, motoresValue, estado_ema]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando equipo:', error);
@@ -354,7 +433,7 @@ app.post('/api/equipos', async (req, res) => {
 });
 
 // Actualizar equipo
-app.put('/api/equipos/:id', async (req, res) => {
+app.put('/api/equipos/:id', checkSectorPermission, async (req, res) => {
   const { sector, piscina_id, estado_piscina, tolvas, sf200, hidrofos, motores, estado_ema } = req.body;
   
   // Validaciones
@@ -437,7 +516,7 @@ app.get('/api/modelos-baterias/:id', async (req, res) => {
 });
 
 // Crear modelo de batería
-app.post('/api/modelos-baterias', async (req, res) => {
+app.post('/api/modelos-baterias', checkSectorPermission, async (req, res) => {
   const { id, sector, nombre, amperaje } = req.body;
   
   // Validaciones
@@ -448,14 +527,31 @@ app.post('/api/modelos-baterias', async (req, res) => {
   if (/\s/.test(nombre)) return res.status(400).json({ error: 'El nombre no puede contener espacios' });
   
   try {
-    const query = `
-      INSERT INTO modelos_baterias (id, sector, nombre, amperaje)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (sector, nombre, amperaje) 
-      DO UPDATE SET nombre = EXCLUDED.nombre, amperaje = EXCLUDED.amperaje
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, nombre, amperaje]);
+    // Verificar si ya existe un modelo de batería con este ID
+    const existingCheck = await pool.query('SELECT id FROM modelos_baterias WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE modelos_baterias 
+        SET sector = $1, nombre = $2, amperaje = $3
+        WHERE id = $4
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, nombre, amperaje, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO modelos_baterias (id, sector, nombre, amperaje)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (sector, nombre, amperaje) 
+        DO UPDATE SET nombre = EXCLUDED.nombre, amperaje = EXCLUDED.amperaje
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, nombre, amperaje]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando modelo de batería:', error);
@@ -493,7 +589,7 @@ app.put('/api/modelos-baterias/:id', async (req, res) => {
 });
 
 // Eliminar modelo de batería
-app.delete('/api/modelos-baterias/:id', async (req, res) => {
+app.delete('/api/modelos-baterias/:id', checkSectorPermission, async (req, res) => {
   try {
     await pool.query('DELETE FROM modelos_baterias WHERE id = $1', [req.params.id]);
     res.json({ message: 'Modelo de batería eliminado' });
@@ -542,7 +638,7 @@ app.get('/api/lotes-baterias/:id', async (req, res) => {
 });
 
 // Crear lote de batería
-app.post('/api/lotes-baterias', async (req, res) => {
+app.post('/api/lotes-baterias', checkSectorPermission, async (req, res) => {
   const { id, sector, nombre_completo } = req.body;
 
   // Validaciones
@@ -550,14 +646,31 @@ app.post('/api/lotes-baterias', async (req, res) => {
   if (!nombre_completo) return res.status(400).json({ error: 'El nombre completo es requerido' });
 
   try {
-    const query = `
-      INSERT INTO lotes_baterias (id, sector, nombre_completo)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (sector, nombre_completo)
-      DO UPDATE SET nombre_completo = EXCLUDED.nombre_completo
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, nombre_completo]);
+    // Verificar si ya existe un lote de batería con este ID
+    const existingCheck = await pool.query('SELECT id FROM lotes_baterias WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE lotes_baterias
+        SET sector = $1, nombre_completo = $2
+        WHERE id = $3
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, nombre_completo, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO lotes_baterias (id, sector, nombre_completo)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (sector, nombre_completo)
+        DO UPDATE SET nombre_completo = EXCLUDED.nombre_completo
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, nombre_completo]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando lote de batería:', error);
@@ -566,7 +679,7 @@ app.post('/api/lotes-baterias', async (req, res) => {
 });
 
 // Actualizar lote de batería
-app.put('/api/lotes-baterias/:id', async (req, res) => {
+app.put('/api/lotes-baterias/:id', checkSectorPermission, async (req, res) => {
   const { sector, nombre_completo } = req.body;
 
   // Validaciones
@@ -653,7 +766,7 @@ app.get('/api/instalaciones-baterias/:id', async (req, res) => {
 });
 
 // Crear instalación de batería
-app.post('/api/instalaciones-baterias', async (req, res) => {
+app.post('/api/instalaciones-baterias', checkSectorPermission, async (req, res) => {
   const { id, sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero } = req.body;
   
   // Validaciones
@@ -664,12 +777,29 @@ app.post('/api/instalaciones-baterias', async (req, res) => {
   if (!tolva_numero) return res.status(400).json({ error: 'El número de tolva es requerido' });
   
   try {
-    const query = `
-      INSERT INTO instalaciones_baterias (id, sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero]);
+    // Verificar si ya existe una instalación de batería con este ID
+    const existingCheck = await pool.query('SELECT id FROM instalaciones_baterias WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE instalaciones_baterias 
+        SET sector = $1, modelo_bateria_id = $2, lote_bateria_id = $3, piscina_numero = $4, tolva_numero = $5
+        WHERE id = $6
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO instalaciones_baterias (id, sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando instalación de batería:', error);
@@ -678,7 +808,7 @@ app.post('/api/instalaciones-baterias', async (req, res) => {
 });
 
 // Actualizar instalación de batería
-app.put('/api/instalaciones-baterias/:id', async (req, res) => {
+app.put('/api/instalaciones-baterias/:id', checkSectorPermission, async (req, res) => {
   const { sector, modelo_bateria_id, lote_bateria_id, piscina_numero, tolva_numero } = req.body;
   
   // Validaciones
@@ -707,7 +837,7 @@ app.put('/api/instalaciones-baterias/:id', async (req, res) => {
 });
 
 // Eliminar instalación de batería
-app.delete('/api/instalaciones-baterias/:id', async (req, res) => {
+app.delete('/api/instalaciones-baterias/:id', checkSectorPermission, async (req, res) => {
   try {
     await pool.query('DELETE FROM instalaciones_baterias WHERE id = $1', [req.params.id]);
     res.json({ message: 'Instalación de batería eliminada' });
@@ -764,14 +894,31 @@ app.post('/api/componentes', async (req, res) => {
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
   try {
-    const query = `
-      INSERT INTO componentes (id, sector, nombre)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (sector, nombre)
-      DO UPDATE SET nombre = EXCLUDED.nombre
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, nombre]);
+    // Verificar si ya existe un componente con este ID
+    const existingCheck = await pool.query('SELECT id FROM componentes WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE componentes
+        SET sector = $1, nombre = $2
+        WHERE id = $3
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, nombre, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO componentes (id, sector, nombre)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (sector, nombre)
+        DO UPDATE SET nombre = EXCLUDED.nombre
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, nombre]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando componente:', error);
@@ -780,7 +927,7 @@ app.post('/api/componentes', async (req, res) => {
 });
 
 // Actualizar componente
-app.put('/api/componentes/:id', async (req, res) => {
+app.put('/api/componentes/:id', checkSectorPermission, async (req, res) => {
   const { sector, nombre } = req.body;
 
   // Validaciones
@@ -865,7 +1012,7 @@ app.get('/api/instalaciones-componentes/:id', async (req, res) => {
 });
 
 // Crear instalación de componente
-app.post('/api/instalaciones-componentes', async (req, res) => {
+app.post('/api/instalaciones-componentes', checkSectorPermission, async (req, res) => {
   const { id, sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles } = req.body;
 
   // Validaciones
@@ -874,12 +1021,29 @@ app.post('/api/instalaciones-componentes', async (req, res) => {
   if (!punto_instalacion) return res.status(400).json({ error: 'El punto de instalación es requerido' });
 
   try {
-    const query = `
-      INSERT INTO instalaciones_componentes (id, sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles]);
+    // Verificar si ya existe una instalación de componente con este ID
+    const existingCheck = await pool.query('SELECT id FROM instalaciones_componentes WHERE id = $1', [id]);
+    
+    let result;
+    if (existingCheck.rows.length > 0) {
+      // Si existe, actualizar
+      const query = `
+        UPDATE instalaciones_componentes
+        SET sector = $1, componente_id = $2, punto_instalacion = $3, piscina_numero = $4, tolva_numero = $5, motor_codigo = $6, sf200_zona = $7, taller_detalles = $8
+        WHERE id = $9
+        RETURNING *
+      `;
+      result = await pool.query(query, [sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, id]);
+    } else {
+      // Si no existe, insertar
+      const query = `
+        INSERT INTO instalaciones_componentes (id, sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      `;
+      result = await pool.query(query, [id, sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles]);
+    }
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando instalación de componente:', error);
@@ -888,7 +1052,7 @@ app.post('/api/instalaciones-componentes', async (req, res) => {
 });
 
 // Actualizar instalación de componente
-app.put('/api/instalaciones-componentes/:id', async (req, res) => {
+app.put('/api/instalaciones-componentes/:id', checkSectorPermission, async (req, res) => {
   const { sector, componente_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles } = req.body;
 
   // Validaciones
@@ -915,7 +1079,7 @@ app.put('/api/instalaciones-componentes/:id', async (req, res) => {
 });
 
 // Eliminar instalación de componente
-app.delete('/api/instalaciones-componentes/:id', async (req, res) => {
+app.delete('/api/instalaciones-componentes/:id', checkSectorPermission, async (req, res) => {
   try {
     await pool.query('DELETE FROM instalaciones_componentes WHERE id = $1', [req.params.id]);
     res.json({ message: 'Instalación de componente eliminada' });

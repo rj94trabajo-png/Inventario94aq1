@@ -862,10 +862,14 @@ window.openModalComponente = async function(id = null) {
 };
 
 async function saveComponente() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('filter-sector-componentes').value;
   const nombre = document.getElementById('f-nombre-componente').value.trim();
 
-  if (!nombre) { showToast('Debe ingresar el nombre del componente.'); return; }
+  if (!nombre) { showToast('Debe ingresar el nombre del componente.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   const componente = {
     id: editingId || generateId(),
@@ -890,6 +894,9 @@ async function saveComponente() {
   } catch (error) {
     console.error('Error saving componente:', error);
     showToast('Error al guardar componente. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -1103,12 +1110,16 @@ window.openModalInstalacionComponente = async function(idOrData) {
 };
 
 async function saveInstalacionComponente() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('filter-sector-componentes').value;
   const componenteId = document.getElementById('f-componente-id').value;
   const puntoInstalacion = document.getElementById('f-punto-instalacion').value;
 
-  if (!componenteId) { showToast('Debe seleccionar un componente.'); return; }
-  if (!puntoInstalacion) { showToast('Debe seleccionar un punto de instalación.'); return; }
+  if (!componenteId) { showToast('Debe seleccionar un componente.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!puntoInstalacion) { showToast('Debe seleccionar un punto de instalación.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   let piscinaNumero = null;
   let tolvaNumero = null;
@@ -1175,6 +1186,9 @@ async function saveInstalacionComponente() {
   } catch (error) {
     console.error('Error saving instalación componente:', error);
     showToast('Error al guardar instalación de componente. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -1662,12 +1676,16 @@ function piscinaForm(id) {
 }
 
 async function savePiscina() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('f-sector').value;
   const numero = document.getElementById('f-numero').value.trim();
 
-  if (!sector) { showToast('Debe seleccionar un sector.'); return; }
-  if (!numero) { showToast('Debe ingresar el número de piscina.'); return; }
-  if (!/^\d+$/.test(numero)) { showToast('Solo se permiten números.'); return; }
+  if (!sector) { showToast('Debe seleccionar un sector.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!numero) { showToast('Debe ingresar el número de piscina.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!/^\d+$/.test(numero)) { showToast('Solo se permiten números.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   const existing = findPiscina(sector, numero);
   if (existing && existing.id !== editingId) {
@@ -1695,6 +1713,9 @@ async function savePiscina() {
   } catch (error) {
     console.error('Error saving piscina:', error);
     showToast('Error al guardar piscina. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -1849,15 +1870,19 @@ function motorForm(id) {
 }
 
 async function saveMotor() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('f-sector').value;
   const estadoMotor = document.getElementById('f-estadoMotor').value;
   const codigo = document.getElementById('f-codigo').value.trim();
   const piscinaId = document.getElementById('f-piscinaId')?.value || '';
 
-  if (!sector) { showToast('Debe seleccionar un sector.'); return; }
-  if (!estadoMotor) { showToast('Debe seleccionar el estado del motor.'); return; }
-  if (!/^\d{5}$/.test(codigo)) { showToast('El código debe tener exactamente 5 dígitos numéricos.'); return; }
-  if (estadoMotor === 'Piscinas' && !piscinaId) { showToast('Debe seleccionar una piscina.'); return; }
+  if (!sector) { showToast('Debe seleccionar un sector.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!estadoMotor) { showToast('Debe seleccionar el estado del motor.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!/^\d{5}$/.test(codigo)) { showToast('El código debe tener exactamente 5 dígitos numéricos.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (estadoMotor === 'Piscinas' && !piscinaId) { showToast('Debe seleccionar una piscina.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   const existing = findMotorByCodigo(codigo);
   if (existing && existing.id !== editingId) {
@@ -1889,6 +1914,9 @@ async function saveMotor() {
   } catch (error) {
     console.error('Error saving motor:', error);
     showToast('Error al guardar motor. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -2057,6 +2085,10 @@ function equipoForm(id) {
 }
 
 async function saveEquipo() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('f-sector').value;
   const piscinaId = document.getElementById('f-piscinaId').value;
   const estadoPiscina = document.getElementById('f-estadoPiscina').value;
@@ -2066,13 +2098,17 @@ async function saveEquipo() {
   const motores = document.getElementById('f-motores').value.trim();
   const estadoEma = document.getElementById('f-estadoEma').value;
 
-  if (!sector) { showToast('Debe seleccionar un sector.'); return; }
-  if (!piscinaId) { showToast('Debe seleccionar una piscina.'); return; }
+  if (!sector) { showToast('Debe seleccionar un sector.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!piscinaId) { showToast('Debe seleccionar una piscina.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
-  if (tolvas && !/^\d+$/.test(tolvas)) { showToast('Tolvas solo acepta números.'); return; }
-  if (sf200 && !isValidDecimal(sf200)) { showToast('SF200 solo acepta números con un punto (ej: 1.5).'); return; }
-  if (hidrofos && !/^\d+$/.test(hidrofos)) { showToast('Hidrofos solo acepta números.'); return; }
-  if (motores && !/^\d+$/.test(motores)) { showToast('Motores solo acepta números.'); return; }
+  if (!tolvas) { showToast('Debe ingresar el número de tolvas.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!/^\d+$/.test(tolvas)) { showToast('Tolvas solo acepta números.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!sf200) { showToast('Debe ingresar el valor SF200.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!isValidDecimal(sf200)) { showToast('SF200 solo acepta números con un punto (ej: 1.5).'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!hidrofos) { showToast('Debe ingresar el número de hidrofos.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!/^\d+$/.test(hidrofos)) { showToast('Hidrofos solo acepta números.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!motores) { showToast('Debe ingresar el número de motores.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!/^\d+$/.test(motores)) { showToast('Motores solo acepta números.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   const existing = findEquipoByPiscina(sector, piscinaId);
   if (existing && existing.id !== editingId) {
@@ -2108,6 +2144,9 @@ async function saveEquipo() {
   } catch (error) {
     console.error('Error saving equipo:', error);
     showToast('Error al guardar equipo. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -4295,14 +4334,18 @@ window.openModalModeloBateria = async function(id = null) {
 };
 
 async function saveModeloBateria() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('filter-sector-trabajos').value;
   const nombre = document.getElementById('f-nombre').value.trim();
   const amperaje = document.getElementById('f-amperaje').value.trim();
 
-  if (!nombre) { showToast('Debe ingresar el nombre de la batería.'); return; }
-  if (/\s/.test(nombre)) { showToast('El nombre no puede contener espacios.'); return; }
-  if (!amperaje) { showToast('Debe ingresar el amperaje.'); return; }
-  if (!/^\d+$/.test(amperaje)) { showToast('El amperaje debe ser un número.'); return; }
+  if (!nombre) { showToast('Debe ingresar el nombre de la batería.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (/\s/.test(nombre)) { showToast('El nombre no puede contener espacios.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!amperaje) { showToast('Debe ingresar el amperaje.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!/^\d+$/.test(amperaje)) { showToast('El amperaje debe ser un número.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   const modelo = {
     id: editingId || generateId(),
@@ -4327,6 +4370,9 @@ async function saveModeloBateria() {
   } catch (error) {
     console.error('Error saving modelo batería:', error);
     showToast('Error al guardar modelo de batería. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -4372,10 +4418,14 @@ window.openModalLoteBateria = async function(id = null) {
 };
 
 async function saveLoteBateria() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
   const sector = document.getElementById('filter-sector-trabajos').value;
   const nombreCompleto = document.getElementById('f-nombre-completo').value.trim();
 
-  if (!nombreCompleto) { showToast('Debe ingresar el nombre y número del lote.'); return; }
+  if (!nombreCompleto) { showToast('Debe ingresar el nombre y número del lote.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
 
   const lote = {
     id: editingId || generateId(),
@@ -4400,6 +4450,9 @@ async function saveLoteBateria() {
   } catch (error) {
     console.error('Error saving lote batería:', error);
     showToast('Error al guardar lote de batería. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
   }
 }
 
@@ -4512,17 +4565,30 @@ async function loadModelosAndLotesForInstalacion(sector) {
     lotes.map(l => `<option value="${l.id}">${l.nombre_completo}</option>`).join('');
 }
 
+let isSavingInstalacionBateria = false;
+
 async function saveInstalacionBateria() {
+  if (isSavingInstalacionBateria) {
+    return;
+  }
+
+  isSavingInstalacionBateria = true;
+  const saveButton = document.getElementById('modal-save');
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = 'Guardando...';
+  }
+
   const sector = document.getElementById('filter-sector-trabajos').value;
   const modeloBateriaId = document.getElementById('f-modelo-bateria').value;
   const loteBateriaId = document.getElementById('f-lote-bateria').value;
   const piscinaNumero = document.getElementById('f-piscina-numero').value;
   const tolvaNumero = document.getElementById('f-tolva-numero').value.trim();
 
-  if (!modeloBateriaId) { showToast('Debe seleccionar un modelo de batería.'); return; }
-  if (!loteBateriaId) { showToast('Debe seleccionar un lote de batería.'); return; }
-  if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); return; }
-  if (!tolvaNumero) { showToast('Debe ingresar el número de tolva.'); return; }
+  if (!modeloBateriaId) { showToast('Debe seleccionar un modelo de batería.'); resetSaveButton(); return; }
+  if (!loteBateriaId) { showToast('Debe seleccionar un lote de batería.'); resetSaveButton(); return; }
+  if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); resetSaveButton(); return; }
+  if (!tolvaNumero) { showToast('Debe ingresar el número de tolva.'); resetSaveButton(); return; }
 
   const instalacion = {
     id: editingId || generateId(),
@@ -4551,6 +4617,17 @@ async function saveInstalacionBateria() {
   } catch (error) {
     console.error('Error saving instalación batería:', error);
     showToast('Error al guardar instalación de batería. Por favor intente nuevamente.');
+  } finally {
+    resetSaveButton();
+  }
+}
+
+function resetSaveButton() {
+  isSavingInstalacionBateria = false;
+  const saveButton = document.getElementById('modal-save');
+  if (saveButton) {
+    saveButton.disabled = false;
+    saveButton.textContent = 'Guardar';
   }
 }
 
