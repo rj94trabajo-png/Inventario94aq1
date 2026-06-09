@@ -62,6 +62,7 @@ initDatabase().catch(console.error);
 async function ensureUsersExist() {
   const bcrypt = require('bcrypt');
   try {
+    console.log('🔍 Verificando usuarios en la base de datos...');
     const client = await pool.connect();
     try {
       const users = [
@@ -98,22 +99,25 @@ async function ensureUsersExist() {
       ];
 
       for (const user of users) {
+        console.log(`🔍 Verificando usuario: ${user.username}`);
         const result = await client.query(
           'SELECT * FROM usuarios WHERE username = $1',
           [user.username]
         );
 
         if (result.rows.length === 0) {
+          console.log(`📝 Creando usuario: ${user.username}`);
           const hashedPassword = await bcrypt.hash(user.password, 10);
           const id = user.username.toLowerCase() + '-' + Date.now();
           
           await client.query(
-            `INSERT INTO usuarios (id, username, password, rol, sectores_permitidos)
-             VALUES ($1, $2, $3, $4, $5)`,
+            'INSERT INTO usuarios (id, username, password, rol, sectores_permitidos) VALUES ($1, $2, $3, $4, $5)',
             [id, user.username, hashedPassword, user.rol, user.sectoresPermitidos]
           );
           
           console.log(`✅ Usuario '${user.username}' creado automáticamente`);
+        } else {
+          console.log(`✅ Usuario '${user.username}' ya existe`);
         }
       }
       console.log('✅ Verificación de usuarios completada');
@@ -121,7 +125,7 @@ async function ensureUsersExist() {
       client.release();
     }
   } catch (error) {
-    console.error('Error verificando usuarios:', error);
+    console.error('❌ Error verificando usuarios:', error);
   }
 }
 
@@ -1187,7 +1191,10 @@ app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
+    console.log('🔐 Intento de login:', { username });
+    
     if (!username || !password) {
+      console.log('❌ Usuario o contraseña faltantes');
       return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
     }
     
@@ -1196,14 +1203,20 @@ app.post('/api/login', async (req, res) => {
       [username]
     );
     
+    console.log('📊 Usuarios encontrados:', result.rows.length);
+    
     if (result.rows.length === 0) {
+      console.log('❌ Usuario no encontrado:', username);
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
     
     const user = result.rows[0];
+    console.log('👤 Usuario encontrado:', { username: user.username, rol: user.rol });
+    
     const passwordMatch = await bcrypt.compare(password, user.password);
     
     if (!passwordMatch) {
+      console.log('❌ Contraseña incorrecta');
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
     
@@ -1214,6 +1227,8 @@ app.post('/api/login', async (req, res) => {
       sectoresPermitidos: user.sectores_permitidos
     };
     
+    console.log('✅ Login exitoso:', { username: user.username, rol: user.rol });
+    
     res.json({
       id: user.id,
       username: user.username,
@@ -1221,7 +1236,7 @@ app.post('/api/login', async (req, res) => {
       sectoresPermitidos: user.sectores_permitidos
     });
   } catch (error) {
-    console.error('Error en login:', error);
+    console.error('❌ Error en login:', error);
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 });
