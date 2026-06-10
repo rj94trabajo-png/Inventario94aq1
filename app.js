@@ -921,6 +921,7 @@ async function saveComponente() {
     const response = await fetch(url, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(componente)
     });
     if (!response.ok) throw new Error('Error al guardar componente');
@@ -940,7 +941,8 @@ async function saveComponente() {
 window.deleteComponente = async function(id) {
   try {
     const response = await fetch(`${API_BASE}/componentes/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar componente');
     showToast('Componente eliminado');
@@ -1213,6 +1215,7 @@ async function saveInstalacionComponente() {
     const response = await fetch(url, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(instalacion)
     });
     if (!response.ok) throw new Error('Error al guardar instalación de componente');
@@ -1232,7 +1235,8 @@ async function saveInstalacionComponente() {
 window.deleteInstalacionComponente = async function(id) {
   try {
     const response = await fetch(`${API_BASE}/instalaciones-componentes/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar instalación de componente');
     showToast('Instalación eliminada');
@@ -1740,6 +1744,7 @@ async function savePiscina() {
     const response = await fetch(`${API_BASE}/piscinas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(piscina)
     });
     if (!response.ok) throw new Error('Error al guardar piscina');
@@ -1759,7 +1764,8 @@ async function savePiscina() {
 async function deletePiscina(id) {
   try {
     const response = await fetch(`${API_BASE}/piscinas/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar piscina');
     showToast('Piscina eliminada');
@@ -1938,6 +1944,7 @@ async function saveMotor() {
     const response = await fetch(`${API_BASE}/motores`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(motor)
     });
     if (!response.ok) throw new Error('Error al guardar motor');
@@ -1960,7 +1967,8 @@ async function saveMotor() {
 async function deleteMotor(id) {
   try {
     const response = await fetch(`${API_BASE}/motores/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar motor');
     showToast('Motor eliminado');
@@ -2168,6 +2176,7 @@ async function saveEquipo() {
     const response = await fetch(`${API_BASE}/equipos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(equipo)
     });
     if (!response.ok) throw new Error('Error al guardar equipo');
@@ -2190,7 +2199,8 @@ async function saveEquipo() {
 async function deleteEquipo(id) {
   try {
     const response = await fetch(`${API_BASE}/equipos/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar equipo');
     showToast('Equipo eliminado');
@@ -4398,6 +4408,7 @@ async function saveModeloBateria() {
     const response = await fetch(url, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(modelo)
     });
     if (!response.ok) throw new Error('Error al guardar modelo de batería');
@@ -4416,7 +4427,8 @@ async function saveModeloBateria() {
 window.deleteModeloBateria = async function(id) {
   try {
     const response = await fetch(`${API_BASE}/modelos-baterias/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar modelo de batería');
     showToast('Modelo de batería eliminado');
@@ -4477,6 +4489,7 @@ async function saveLoteBateria() {
     const response = await fetch(url, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(lote)
     });
     if (!response.ok) throw new Error('Error al guardar lote de batería');
@@ -4496,7 +4509,8 @@ async function saveLoteBateria() {
 window.deleteLoteBateria = async function(id) {
   try {
     const response = await fetch(`${API_BASE}/lotes-baterias/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar lote de batería');
     showToast('Lote de batería eliminado');
@@ -4644,6 +4658,7 @@ async function saveInstalacionBateria() {
     const response = await fetch(url, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(instalacion)
     });
     if (!response.ok) throw new Error('Error al guardar instalación de batería');
@@ -4671,7 +4686,8 @@ function resetSaveButton() {
 window.deleteInstalacionBateria = async function(id) {
   try {
     const response = await fetch(`${API_BASE}/instalaciones-baterias/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
     if (!response.ok) throw new Error('Error al eliminar instalación de batería');
     showToast('Instalación de batería eliminada');

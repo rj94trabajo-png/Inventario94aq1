@@ -14,10 +14,13 @@ app.use((req, res, next) => {
   console.log('🌐 Request origin:', origin);
   console.log('🌐 Request path:', req.path);
   
-  // Para desarrollo y producción, permitir el origen
-  if (origin) {
+  // En producción, no necesitamos CORS porque frontend y backend están en el mismo dominio
+  // En desarrollo, permitir el origen específico
+  if (origin && (process.env.NODE_ENV !== 'production' && process.env.RENDER !== 'true')) {
     res.header('Access-Control-Allow-Origin', origin);
   }
+  
+  // Siempre permitir credenciales
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -52,7 +55,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' ? 'lax' : 'none',
+    sameSite: 'lax',
     path: '/'
   }
 }));
