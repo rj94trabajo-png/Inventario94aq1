@@ -52,7 +52,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'none',
+    sameSite: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true' ? 'lax' : 'none',
     path: '/'
   }
 }));
@@ -481,7 +481,7 @@ app.get('/api/equipos/sector/:sector/piscina/:piscinaId', async (req, res) => {
 });
 
 // Crear equipo
-app.post('/api/equipos', async (req, res) => {
+app.post('/api/equipos', checkSectorPermission, async (req, res) => {
   const { id, sector, piscina_id, estado_piscina, tolvas, sf200, hidrofos, motores, estado_ema } = req.body;
   
   // Validaciones
@@ -983,7 +983,7 @@ app.get('/api/componentes/:id', async (req, res) => {
 });
 
 // Crear componente
-app.post('/api/componentes', async (req, res) => {
+app.post('/api/componentes', checkSectorPermission, async (req, res) => {
   const { id, sector, nombre } = req.body;
 
   // Validaciones
