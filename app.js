@@ -14,6 +14,24 @@ const ESTADOS_MOTOR = [
 let currentUser = null;
 let sectoresPermitidos = [];
 
+// Helper function to add JWT token to fetch options
+function getAuthHeaders(options = {}) {
+  const token = localStorage.getItem('authToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return {
+    ...options,
+    headers
+  };
+}
+
 // Hamburger menu toggle
 document.addEventListener('DOMContentLoaded', () => {
   const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -69,15 +87,21 @@ function showToast(message) {
 // Authentication functions
 async function checkSession() {
   try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      showLoginModal();
+      return;
+    }
+
     const response = await fetch(`${API_BASE}/session`, {
-      credentials: 'include'
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
     if (response.ok) {
       const user = await response.json();
       currentUser = user;
       sectoresPermitidos = user.sectoresPermitidos || [];
-      // Guardar en localStorage como respaldo
-      localStorage.setItem('currentUser', JSON.stringify(user));
       applySectorRestrictions();
     } else {
       // Si la sesión del servidor falla, intentar usar localStorage
@@ -90,9 +114,11 @@ async function checkSession() {
           applySectorRestrictions();
         } catch (e) {
           localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
           showLoginModal();
         }
       } else {
+        localStorage.removeItem('authToken');
         showLoginModal();
       }
     }
@@ -108,9 +134,11 @@ async function checkSession() {
         applySectorRestrictions();
       } catch (e) {
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
         showLoginModal();
       }
     } else {
+      localStorage.removeItem('authToken');
       showLoginModal();
     }
   }
@@ -133,16 +161,17 @@ async function handleLogin() {
     const response = await fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ username, password })
     });
 
     if (response.ok) {
-      const user = await response.json();
-      currentUser = user;
-      sectoresPermitidos = user.sectoresPermitidos || [];
-      // Guardar en localStorage como respaldo
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      const data = await response.json();
+      currentUser = data;
+      sectoresPermitidos = data.sectoresPermitidos || [];
+      
+      // Guardar token JWT y usuario en localStorage
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data));
       
       // Limpiar datos en memoria de la sesión anterior
       data.motores = [];
@@ -185,7 +214,7 @@ async function handleLogin() {
       document.getElementById('login-overlay').classList.remove('open');
       document.getElementById('login-username').value = '';
       document.getElementById('login-password').value = '';
-      showToast(`Bienvenido, ${user.username}`);
+      showToast(`Bienvenido, ${data.username}`);
       applySectorRestrictions();
     } else {
       const error = await response.json();
@@ -200,12 +229,12 @@ async function handleLogin() {
 async function handleLogout() {
   try {
     await fetch(`${API_BASE}/logout`, {
-      method: 'POST',
-      credentials: 'include'
+      method: 'POST'
     });
     currentUser = null;
     sectoresPermitidos = [];
-    // Limpiar localStorage
+    // Eliminar token JWT y usuario de localStorage
+    localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     
     // Limpiar datos en memoria
@@ -918,12 +947,10 @@ async function saveComponente() {
     const url = editingId ? `${API_BASE}/componentes/${editingId}` : `${API_BASE}/componentes`;
     const method = editingId ? 'PUT' : 'POST';
     
-    const response = await fetch(url, {
+    const response = await fetch(url, getAuthHeaders({
       method: method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(componente)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar componente');
 
     closeModal();
@@ -940,10 +967,9 @@ async function saveComponente() {
 
 window.deleteComponente = async function(id) {
   try {
-    const response = await fetch(`${API_BASE}/componentes/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/componentes/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar componente');
     showToast('Componente eliminado');
     await showComponentesSubsection('registro');
@@ -1212,12 +1238,10 @@ async function saveInstalacionComponente() {
     const url = editingId ? `${API_BASE}/instalaciones-componentes/${editingId}` : `${API_BASE}/instalaciones-componentes`;
     const method = editingId ? 'PUT' : 'POST';
     
-    const response = await fetch(url, {
+    const response = await fetch(url, getAuthHeaders({
       method: method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(instalacion)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar instalación de componente');
 
     closeModal();
@@ -1234,10 +1258,9 @@ async function saveInstalacionComponente() {
 
 window.deleteInstalacionComponente = async function(id) {
   try {
-    const response = await fetch(`${API_BASE}/instalaciones-componentes/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/instalaciones-componentes/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar instalación de componente');
     showToast('Instalación eliminada');
     await showComponentesSubsection('instalacion');
@@ -1741,12 +1764,10 @@ async function savePiscina() {
   };
 
   try {
-    const response = await fetch(`${API_BASE}/piscinas`, {
+    const response = await fetch(`${API_BASE}/piscinas`, getAuthHeaders({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(piscina)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar piscina');
     
     closeModal();
@@ -1763,10 +1784,9 @@ async function savePiscina() {
 
 async function deletePiscina(id) {
   try {
-    const response = await fetch(`${API_BASE}/piscinas/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/piscinas/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar piscina');
     showToast('Piscina eliminada');
     await renderPiscinas();
@@ -1941,12 +1961,10 @@ async function saveMotor() {
   };
 
   try {
-    const response = await fetch(`${API_BASE}/motores`, {
+    const response = await fetch(`${API_BASE}/motores`, getAuthHeaders({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(motor)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar motor');
     
     closeModal();
@@ -1966,10 +1984,9 @@ async function saveMotor() {
 
 async function deleteMotor(id) {
   try {
-    const response = await fetch(`${API_BASE}/motores/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/motores/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar motor');
     showToast('Motor eliminado');
     await renderMotores();
@@ -2173,12 +2190,10 @@ async function saveEquipo() {
   };
 
   try {
-    const response = await fetch(`${API_BASE}/equipos`, {
+    const response = await fetch(`${API_BASE}/equipos`, getAuthHeaders({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(equipo)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar equipo');
     
     closeModal();
@@ -2198,10 +2213,9 @@ async function saveEquipo() {
 
 async function deleteEquipo(id) {
   try {
-    const response = await fetch(`${API_BASE}/equipos/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/equipos/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar equipo');
     showToast('Equipo eliminado');
     await renderEquipos();
@@ -4405,12 +4419,10 @@ async function saveModeloBateria() {
     const url = editingId ? `${API_BASE}/modelos-baterias/${editingId}` : `${API_BASE}/modelos-baterias`;
     const method = editingId ? 'PUT' : 'POST';
     
-    const response = await fetch(url, {
+    const response = await fetch(url, getAuthHeaders({
       method: method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(modelo)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar modelo de batería');
     
     closeModal();
@@ -4426,10 +4438,9 @@ async function saveModeloBateria() {
 
 window.deleteModeloBateria = async function(id) {
   try {
-    const response = await fetch(`${API_BASE}/modelos-baterias/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/modelos-baterias/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar modelo de batería');
     showToast('Modelo de batería eliminado');
     await showBateriasSubsection('modelos');
@@ -4486,12 +4497,10 @@ async function saveLoteBateria() {
     const url = editingId ? `${API_BASE}/lotes-baterias/${editingId}` : `${API_BASE}/lotes-baterias`;
     const method = editingId ? 'PUT' : 'POST';
     
-    const response = await fetch(url, {
+    const response = await fetch(url, getAuthHeaders({
       method: method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(lote)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar lote de batería');
 
     closeModal();
@@ -4508,10 +4517,9 @@ async function saveLoteBateria() {
 
 window.deleteLoteBateria = async function(id) {
   try {
-    const response = await fetch(`${API_BASE}/lotes-baterias/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/lotes-baterias/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar lote de batería');
     showToast('Lote de batería eliminado');
     await showBateriasSubsection('lotes');
@@ -4655,12 +4663,10 @@ async function saveInstalacionBateria() {
     const url = editingId ? `${API_BASE}/instalaciones-baterias/${editingId}` : `${API_BASE}/instalaciones-baterias`;
     const method = editingId ? 'PUT' : 'POST';
     
-    const response = await fetch(url, {
+    const response = await fetch(url, getAuthHeaders({
       method: method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(instalacion)
-    });
+    }));
     if (!response.ok) throw new Error('Error al guardar instalación de batería');
     
     closeModal();
@@ -4685,10 +4691,9 @@ function resetSaveButton() {
 
 window.deleteInstalacionBateria = async function(id) {
   try {
-    const response = await fetch(`${API_BASE}/instalaciones-baterias/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
+    const response = await fetch(`${API_BASE}/instalaciones-baterias/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
     if (!response.ok) throw new Error('Error al eliminar instalación de batería');
     showToast('Instalación de batería eliminada');
     await showBateriasSubsection('instalaciones');

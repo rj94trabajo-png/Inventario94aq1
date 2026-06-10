@@ -1,14 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const session = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
+const jwt = require('jsonwebtoken');
 const { pool, initDatabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware - CORS configurado para permitir cookies
+// Middleware - CORS configurado
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   console.log('🌐 Request origin:', origin);
@@ -20,8 +19,6 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
   }
   
-  // Siempre permitir credenciales
-  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
@@ -39,24 +36,6 @@ app.use(express.static(require('path').join(__dirname, '..'), {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-  }
-}));
-
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'aq1-secret-key-2024',
-  resave: false,
-  saveUninitialized: false,
-  store: new pgSession({
-    pool: pool,
-    tableName: 'session'
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax',
-    path: '/'
   }
 }));
 
@@ -136,18 +115,29 @@ async function ensureUsersExist() {
 
 ensureUsersExist();
 
-// Middleware de autenticación
+// Middleware de autenticación JWT
 const requireAuth = (req, res, next) => {
-  if (req.session.user) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+  
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+  
+  try {
+    const decoded = jwt.verify(token, process.env.SESSION_SECRET || 'aq1-secret-key-2024');
+    req.user = decoded;
     next();
-  } else {
-    res.status(401).json({ error: 'No autenticado' });
+  } catch (error) {
+    console.error('Error verificando token:', error);
+    res.status(401).json({ error: 'Token inválido o expirado' });
   }
 };
 
 // Middleware de verificación de permisos por sector
 const checkSectorPermission = (req, res, next) => {
-  const user = req.session.user;
+  const user = req.user;
   
   // El administrador tiene acceso a todos los sectores
   if (user.rol === 'admin') {
@@ -1225,16 +1215,22 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
     
-    req.session.user = {
-      id: user.id,
-      username: user.username,
-      rol: user.rol,
-      sectoresPermitidos: user.sectores_permitidos
-    };
+    // Generar token JWT
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        rol: user.rol,
+        sectoresPermitidos: user.sectores_permitidos
+      },
+      process.env.SESSION_SECRET || 'aq1-secret-key-2024',
+      { expiresIn: '24h' }
+    );
     
     console.log('✅ Login exitoso:', { username: user.username, rol: user.rol });
     
     res.json({
+      token,
       id: user.id,
       username: user.username,
       rol: user.rol,
@@ -1247,22 +1243,18 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Verificar sesión
-app.get('/api/session', (req, res) => {
-  if (req.session.user) {
-    res.json(req.session.user);
-  } else {
-    res.status(401).json({ error: 'No autenticado' });
-  }
+app.get('/api/session', requireAuth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    username: req.user.username,
+    rol: req.user.rol,
+    sectoresPermitidos: req.user.sectoresPermitidos
+  });
 });
 
-// Logout
+// Logout (con JWT no es necesario hacer nada en el servidor)
 app.post('/api/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error al cerrar sesión' });
-    }
-    res.json({ message: 'Sesión cerrada' });
-  });
+  res.json({ message: 'Sesión cerrada' });
 });
 
 // ==================== INICIO SERVIDOR ====================
