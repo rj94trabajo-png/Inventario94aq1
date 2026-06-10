@@ -401,7 +401,7 @@ function restrictNumeric(el, maxLen) {
 async function fetchPiscinas(sector = '') {
   try {
     const url = sector ? `${API_BASE}/piscinas?sector=${encodeURIComponent(sector)}` : `${API_BASE}/piscinas`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const piscinas = await response.json();
     // Convert snake_case to camelCase
     return piscinas.map(p => ({
@@ -420,7 +420,7 @@ async function fetchPiscinas(sector = '') {
 async function fetchModelosBaterias(sector = '') {
   try {
     const url = sector ? `${API_BASE}/modelos-baterias?sector=${encodeURIComponent(sector)}` : `${API_BASE}/modelos-baterias`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const modelos = await response.json();
     return modelos.map(m => ({
       id: m.id,
@@ -438,7 +438,7 @@ async function fetchModelosBaterias(sector = '') {
 async function fetchLotesBaterias(sector = '') {
   try {
     const url = sector ? `${API_BASE}/lotes-baterias?sector=${encodeURIComponent(sector)}` : `${API_BASE}/lotes-baterias`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const lotes = await response.json();
     return lotes.map(l => ({
       id: l.id,
@@ -455,7 +455,7 @@ async function fetchLotesBaterias(sector = '') {
 async function fetchInstalacionesBaterias(sector = '') {
   try {
     const url = sector ? `${API_BASE}/instalaciones-baterias?sector=${encodeURIComponent(sector)}` : `${API_BASE}/instalaciones-baterias`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const instalaciones = await response.json();
     return instalaciones.map(i => ({
       id: i.id,
@@ -478,7 +478,7 @@ async function fetchInstalacionesBaterias(sector = '') {
 async function fetchComponentes(sector = '') {
   try {
     const url = sector ? `${API_BASE}/componentes?sector=${encodeURIComponent(sector)}` : `${API_BASE}/componentes`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const componentes = await response.json();
     return componentes.map(c => ({
       id: c.id,
@@ -495,7 +495,7 @@ async function fetchComponentes(sector = '') {
 async function fetchInstalacionesComponentes(sector = '') {
   try {
     const url = sector ? `${API_BASE}/instalaciones-componentes?sector=${encodeURIComponent(sector)}` : `${API_BASE}/instalaciones-componentes`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const instalaciones = await response.json();
     return instalaciones.map(i => ({
       id: i.id,
@@ -519,7 +519,7 @@ async function fetchInstalacionesComponentes(sector = '') {
 async function fetchMotores(sector = '') {
   try {
     const url = sector ? `${API_BASE}/motores?sector=${encodeURIComponent(sector)}` : `${API_BASE}/motores`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const motores = await response.json();
     return motores.map(m => ({
       id: m.id,
@@ -538,7 +538,7 @@ async function fetchMotores(sector = '') {
 async function fetchEquipos(sector = '') {
   try {
     const url = sector ? `${API_BASE}/equipos?sector=${encodeURIComponent(sector)}` : `${API_BASE}/equipos`;
-    const response = await fetch(url);
+    const response = await fetch(url, getAuthHeaders());
     const equipos = await response.json();
     return equipos.map(e => ({
       id: e.id,
