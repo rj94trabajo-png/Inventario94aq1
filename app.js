@@ -4,7 +4,7 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   : '/api';
 const SECTORS = ['Sector 1', 'Sector 2', 'Sector 3', 'Sector 4'];
 const ESTADOS_MOTOR = [
-  'Contenedor por Mantenimiento',
+  'Taller por Mantenimiento',
   'Placa',
   'Afuera por Mantenimiento',
   'Piscinas'
@@ -640,7 +640,7 @@ function buildResumenEquiposHTML(sector) {
 function buildResumenMotoresHTML(sector) {
   const motores = data.motores.filter(m => m.sector === sector);
   const total = motores.length;
-  const contenedor = motores.filter(m => m.estadoMotor === 'Contenedor por Mantenimiento').length;
+  const taller = motores.filter(m => m.estadoMotor === 'Taller por Mantenimiento').length;
   const placa = motores.filter(m => m.estadoMotor === 'Placa').length;
   const afuera = motores.filter(m => m.estadoMotor === 'Afuera por Mantenimiento').length;
   const enPiscina = motores.filter(m => m.estadoMotor === 'Piscinas').length;
@@ -649,7 +649,7 @@ function buildResumenMotoresHTML(sector) {
     title: `Resumen del ${sector}`,
     body: `
       <li>Total de Motores Registrados: <strong>${total}</strong></li>
-      <li>Contenedor por Mantenimiento: <strong>${contenedor}</strong></li>
+      <li>Taller por Mantenimiento: <strong>${taller}</strong></li>
       <li>Problemas de Placa: <strong>${placa}</strong></li>
       <li>Afuera por Mantenimiento: <strong>${afuera}</strong></li>
       <li>Motores en Piscina: <strong>${enPiscina}</strong></li>
