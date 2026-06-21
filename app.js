@@ -4306,12 +4306,13 @@ async function renderInstalacionesBaterias(sector) {
               <th>Lote</th>
               <th>Piscina</th>
               <th>Tolva</th>
+              <th>Cant. Baterías</th>
               <th>Fecha</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${instalaciones.length === 0 ? '<tr><td colspan="7"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' : 
+            ${instalaciones.length === 0 ? '<tr><td colspan="8"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' : 
             instalaciones.map(i => `
               <tr>
                 <td><strong>${i.modeloNombre}</strong></td>
@@ -4319,6 +4320,7 @@ async function renderInstalacionesBaterias(sector) {
                 <td>${i.loteNombre}</td>
                 <td>${i.piscinaNumero}</td>
                 <td>${i.tolvaNumero}</td>
+                <td>2</td>
                 <td>${formatDate(i.fechaInstalacion)}</td>
                 <td class="actions">
                   <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionBateria('${i.id}')">Editar</button>
@@ -4378,7 +4380,7 @@ async function renderInstalacionesBaterias(sector) {
     const tbody = document.querySelector('#trabajos-content tbody');
     const filteredInstalaciones = filterInstalacionesByDate(instalaciones, mesFilter.value, semanaFilter.value);
     tbody.innerHTML = filteredInstalaciones.length === 0 ?
-      '<tr><td colspan="7"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' :
+      '<tr><td colspan="8"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' :
       filteredInstalaciones.map(i => `
         <tr>
           <td><strong>${i.modeloNombre}</strong></td>
@@ -4386,6 +4388,7 @@ async function renderInstalacionesBaterias(sector) {
           <td>${i.loteNombre}</td>
           <td>${i.piscinaNumero}</td>
           <td>${i.tolvaNumero}</td>
+          <td>2</td>
           <td>${formatDate(i.fechaInstalacion)}</td>
           <td class="actions">
             <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionBateria('${i.id}')">Editar</button>
@@ -4400,7 +4403,7 @@ async function renderInstalacionesBaterias(sector) {
     const tbody = document.querySelector('#trabajos-content tbody');
     const filteredInstalaciones = filterInstalacionesByDate(instalaciones, mesFilter.value, semanaFilter.value);
     tbody.innerHTML = filteredInstalaciones.length === 0 ?
-      '<tr><td colspan="7"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' :
+      '<tr><td colspan="8"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de baterías</p></div></td></tr>' :
       filteredInstalaciones.map(i => `
         <tr>
           <td><strong>${i.modeloNombre}</strong></td>
@@ -4408,6 +4411,7 @@ async function renderInstalacionesBaterias(sector) {
           <td>${i.loteNombre}</td>
           <td>${i.piscinaNumero}</td>
           <td>${i.tolvaNumero}</td>
+          <td>2</td>
           <td>${formatDate(i.fechaInstalacion)}</td>
           <td class="actions">
             <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionBateria('${i.id}')">Editar</button>
@@ -4633,7 +4637,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
         <h4>📋 Por Nombres de Batería</h4>
         ${Object.keys(agrupadoPorNombre).map((nombre, index) => `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoPorNombre[nombre].length} registros)</div>
+            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoPorNombre[nombre].length} registros, ${agrupadoPorNombre[nombre].length * 2} baterías)</div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -4663,7 +4667,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
         <h4>📦 Por Lotes</h4>
         ${Object.keys(agrupadoPorLote).map((loteKey, index) => `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoPorLote[loteKey].length} registros)</div>
+            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoPorLote[loteKey].length} registros, ${agrupadoPorLote[loteKey].length * 2} baterías)</div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -4706,7 +4710,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
       <div class="resumen-baterias-margenes">
         ${Object.keys(agrupado).map((nombre, index) => `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros)</div>
+            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros, ${agrupado[nombre].length * 2} baterías)</div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -4748,7 +4752,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
       <div class="resumen-baterias-margenes">
         ${Object.keys(agrupado).map((loteKey, index) => `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros)</div>
+            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros, ${agrupado[loteKey].length * 2} baterías)</div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -4976,7 +4980,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
     html += '<div class="resumen-baterias-margenes">';
     html += Object.keys(agrupadoNombres).map((nombre, index) => `
       <div class="resumen-baterias-margen">
-        <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoNombres[nombre].length} registros)</div>
+        <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoNombres[nombre].length} registros, ${agrupadoNombres[nombre].length * 2} baterías)</div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -5017,7 +5021,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
     html += '<div class="resumen-baterias-margenes">';
     html += Object.keys(agrupadoLotes).map((loteKey, index) => `
       <div class="resumen-baterias-margen">
-        <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoLotes[loteKey].length} registros)</div>
+        <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoLotes[loteKey].length} registros, ${agrupadoLotes[loteKey].length * 2} baterías)</div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -5061,7 +5065,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
       <div class="resumen-baterias-margenes">
         ${Object.keys(agrupado).map((nombre, index) => `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros)</div>
+            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros, ${agrupado[nombre].length * 2} baterías)</div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -5103,7 +5107,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
       <div class="resumen-baterias-margenes">
         ${Object.keys(agrupado).map((loteKey, index) => `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros)</div>
+            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros, ${agrupado[loteKey].length * 2} baterías)</div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -5133,7 +5137,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
       </div>
     `;
   } else if (tipo === 'combinada') {
-    // Vista combinada: Modelo de batería, Amperaje, Lote, Piscina, Tolva, Fecha
+    // Vista combinada: Modelo de batería, Amperaje, Lote, Piscina, Tolva, Cant. Baterías, Fecha
     content.innerHTML = `
       <div class="table-wrapper-wide">
         <table>
@@ -5144,6 +5148,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
               <th>Lote</th>
               <th>Piscina</th>
               <th>Tolva</th>
+              <th>Cant. Baterías</th>
               <th>Fecha</th>
             </tr>
           </thead>
@@ -5155,6 +5160,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
                 <td>${i.loteNombre}</td>
                 <td>${i.piscinaNumero}</td>
                 <td>${i.tolvaNumero}</td>
+                <td>2</td>
                 <td>${formatDate(i.fechaInstalacion)}</td>
               </tr>
             `).join('')}
@@ -5520,6 +5526,10 @@ window.openModalInstalacionBateria = async function(idOrPiscinas) {
     <div class="form-group">
       <label>Número de Tolva *</label>
       <input type="text" id="f-tolva-numero" placeholder="Ej: 1" ${!editingId ? 'autocomplete="off"' : ''}>
+    </div>
+    <div class="form-group">
+      <label>Cantidad de Baterías</label>
+      <input type="text" id="f-cantidad-baterias" value="2" readonly disabled>
     </div>
     <div class="form-group">
       <label>Fecha</label>
