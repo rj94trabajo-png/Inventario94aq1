@@ -2109,10 +2109,14 @@ window.openModalInstalacionSensor = async function(idOrData) {
 
   // Manejar campos dinámicos según punto de instalación
   const puntoInstalacion = document.getElementById('f-punto-instalacion');
+  const sensorSelect = document.getElementById('f-sensor-id');
   const camposDinamicos = document.getElementById('campos-dinamicos-sensores');
 
-  puntoInstalacion.addEventListener('change', () => {
+  const actualizarCamposDinamicos = () => {
     const seleccionado = puntoInstalacion.value;
+    const sensorId = sensorSelect.value;
+    const sensor = sensores.find(s => s.id === sensorId);
+    const esHidrofonos = sensor && sensor.nombre.toLowerCase().includes('hidrofono');
     let camposHTML = '';
 
     switch (seleccionado) {
@@ -2152,6 +2156,24 @@ window.openModalInstalacionSensor = async function(idOrData) {
             </select>
           </div>
         `;
+        if (esHidrofonos) {
+          camposHTML += `
+            <div class="form-group">
+              <label>Zona *</label>
+              <select id="f-sf200-zona" required>
+                <option value="">— Seleccione una zona —</option>
+                <option value="Zona 1" ${instalacion.sf200Zona === 'Zona 1' ? 'selected' : ''}>Zona 1</option>
+                <option value="Zona 2" ${instalacion.sf200Zona === 'Zona 2' ? 'selected' : ''}>Zona 2</option>
+                <option value="Zona 3" ${instalacion.sf200Zona === 'Zona 3' ? 'selected' : ''}>Zona 3</option>
+                <option value="Zona 4" ${instalacion.sf200Zona === 'Zona 4' ? 'selected' : ''}>Zona 4</option>
+                <option value="Zona 5" ${instalacion.sf200Zona === 'Zona 5' ? 'selected' : ''}>Zona 5</option>
+                <option value="Zona 6" ${instalacion.sf200Zona === 'Zona 6' ? 'selected' : ''}>Zona 6</option>
+                <option value="Zona 7" ${instalacion.sf200Zona === 'Zona 7' ? 'selected' : ''}>Zona 7</option>
+                <option value="Zona 8" ${instalacion.sf200Zona === 'Zona 8' ? 'selected' : ''}>Zona 8</option>
+              </select>
+            </div>
+          `;
+        }
         break;
       case 'Taller':
         camposHTML = `
@@ -2163,11 +2185,14 @@ window.openModalInstalacionSensor = async function(idOrData) {
         break;
     }
     camposDinamicos.innerHTML = camposHTML;
-  });
+  };
+
+  puntoInstalacion.addEventListener('change', actualizarCamposDinamicos);
+  sensorSelect.addEventListener('change', actualizarCamposDinamicos);
 
   // Trigger inicial si hay un punto de instalación seleccionado
-  if (instalacion.puntoInstalacion) {
-    document.getElementById('f-punto-instalacion').dispatchEvent(new Event('change'));
+  if (instalacion.puntoInstalacion || instalacion.sensorId) {
+    actualizarCamposDinamicos();
   }
 
   document.getElementById('modal-save').onclick = saveInstalacionSensor;
@@ -2196,12 +2221,16 @@ async function saveInstalacionSensor() {
     case 'Tolvas':
       tolvaNumero = document.getElementById('f-tolva-numero')?.value.trim() || null;
       piscinaNumero = document.getElementById('f-piscina-numero')?.value || null;
+      if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
       break;
     case 'Piscinas':
       piscinaNumero = document.getElementById('f-piscina-numero')?.value || null;
+      if (!piscinaNumero) { showToast('Debe seleccionar una piscina.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+      sf200Zona = document.getElementById('f-sf200-zona')?.value || null;
       break;
     case 'Motores AQ1':
       motorCodigo = document.getElementById('f-motor-codigo')?.value || null;
+      if (!motorCodigo) { showToast('Debe seleccionar un motor.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
       break;
     case 'Taller':
       tallerDetalles = document.getElementById('f-taller-detalles')?.value.trim() || null;
