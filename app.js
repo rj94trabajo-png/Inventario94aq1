@@ -1962,11 +1962,13 @@ function getDetallesInstalacionSensor(instalacion) {
 async function renderResumenSensores(sector) {
   const content = document.getElementById('sensores-content');
   const instalaciones = await fetchInstalacionesSensores(sector);
+  const lotes = await fetchLotesSensores(sector);
 
   // Generar lista de sensores disponibles
   const sensoresDisponibles = [...new Set(instalaciones.map(i => i.sensorNombre))].sort();
   const mesesDisponibles = obtenerMesesDisponiblesSensores(instalaciones);
   const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const lotesDisponibles = [...new Set(instalaciones.filter(i => i.loteCodigo).map(i => i.loteCodigo))].sort();
 
   content.innerHTML = `
     <div class="card componentes-subsection">
@@ -1977,6 +1979,10 @@ async function renderResumenSensores(sector) {
         <select id="filter-sensor" class="form-select">
           <option value="">Todos los sensores</option>
           ${sensoresDisponibles.map(s => `<option value="${s}">${s}</option>`).join('')}
+        </select>
+        <select id="filter-lote-sensores" class="form-select">
+          <option value="">Seleccionar lote</option>
+          ${lotesDisponibles.map(l => `<option value="${l}">${l}</option>`).join('')}
         </select>
         <select id="filter-mes-sensores" class="form-select">
           <option value="">Todos los meses</option>
@@ -1989,9 +1995,14 @@ async function renderResumenSensores(sector) {
 
   // Event listeners para filtros
   const filterSensor = document.getElementById('filter-sensor');
+  const filterLote = document.getElementById('filter-lote-sensores');
   const filterMes = document.getElementById('filter-mes-sensores');
 
   filterSensor.addEventListener('input', () => {
+    aplicarFiltrosSensores(instalaciones);
+  });
+
+  filterLote.addEventListener('input', () => {
     aplicarFiltrosSensores(instalaciones);
   });
 
@@ -2015,14 +2026,19 @@ function obtenerMesesDisponiblesSensores(instalaciones) {
 
 function aplicarFiltrosSensores(instalaciones) {
   const filterSensor = document.getElementById('filter-sensor');
+  const filterLote = document.getElementById('filter-lote-sensores');
   const filterMes = document.getElementById('filter-mes-sensores');
-  
+
   let instalacionesFiltradas = [...instalaciones];
-  
+
   if (filterSensor?.value) {
     instalacionesFiltradas = instalacionesFiltradas.filter(i => i.sensorNombre === filterSensor.value);
   }
-  
+
+  if (filterLote?.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.loteCodigo === filterLote.value);
+  }
+
   if (filterMes?.value) {
     instalacionesFiltradas = instalacionesFiltradas.filter(i => {
       const fecha = new Date(i.fechaInstalacion);
@@ -2030,7 +2046,7 @@ function aplicarFiltrosSensores(instalaciones) {
       return mesKey === filterMes.value;
     });
   }
-  
+
   renderResumenSensoresContent(instalacionesFiltradas);
 }
 
