@@ -688,11 +688,20 @@ function buildResumenEquiposHTML(sector) {
   const emasOp = equipos.filter(e => e.estadoEma === 'Operativo').length;
   const emasIn = equipos.filter(e => e.estadoEma === 'Inactivo').length;
 
+  // Calcular tolvas activas e inactivas
+  const tolvasActivas = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
+  const tolvasInactivas = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
+  // Calcular motores inactivos por pesca
+  const motoresInactivosPorPesca = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
+
   return {
     title: `Resumen del ${sector}`,
     body: `
       <li>Piscinas Activas: <strong>${activas}</strong></li>
       <li>Piscinas Pescadas: <strong>${pescadas}</strong></li>
+      <li>Tolvas Activas: <strong>${tolvasActivas}</strong></li>
+      <li>Tolvas Inactivas: <strong>${tolvasInactivas}</strong></li>
+      <li>Motores Inactivos por Pesca: <strong>${motoresInactivosPorPesca}</strong></li>
       <li>Tolvas: <strong>${tolvas}</strong></li>
       <li>Motores: <strong>${motores}</strong></li>
       <li>SF200: <strong>${sf200Display}</strong></li>
