@@ -183,6 +183,31 @@ async function initDatabase() {
       console.log('ℹ️ Note: Could not drop UNIQUE constraint (might not exist):', error.message);
     }
 
+    // Add lote_id column if it doesn't exist (migration)
+    try {
+      const checkColumn = await client.query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'instalaciones_sensores'
+        AND column_name = 'lote_id'
+      `);
+
+      if (checkColumn.rows.length === 0) {
+        await client.query(`
+          ALTER TABLE instalaciones_sensores ADD COLUMN lote_id VARCHAR(50)
+        `);
+        // Add foreign key constraint
+        await client.query(`
+          ALTER TABLE instalaciones_sensores
+          ADD CONSTRAINT instalaciones_sensores_lote_id_fkey
+          FOREIGN KEY (lote_id) REFERENCES lotes_sensores(id) ON DELETE SET NULL
+        `);
+        console.log('✅ Columna lote_id agregada a instalaciones_sensores');
+      }
+    } catch (error) {
+      console.error('Error verificando/agregando columna lote_id:', error);
+    }
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS lotes_sensores (
         id VARCHAR(50) PRIMARY KEY,
