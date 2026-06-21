@@ -725,32 +725,12 @@ function buildResumenMotoresHTML(sector) {
   return {
     title: `Resumen del ${sector}`,
     body: `
-      <div class="resumen-stats">
-        <ul class="resumen-lines">
-          <li>Total de Motores Registrados: <strong>${total}</strong></li>
-          <li>Taller por Mantenimiento: <strong>${taller}</strong></li>
-          <li>Problemas de Placa: <strong>${placa}</strong></li>
-          <li>Afuera por Mantenimiento: <strong>${afuera}</strong></li>
-          <li>Motores en Piscina: <strong>${enPiscina}</strong></li>
-        </ul>
-      </div>
-      <div class="resumen-charts">
-        <div class="chart-container">
-          <h3>Distribución por Estado</h3>
-          <canvas id="motoresPieChart"></canvas>
-        </div>
-        <div class="chart-container">
-          <h3>Conteo por Estado</h3>
-          <canvas id="motoresBarChart"></canvas>
-        </div>
-      </div>
-    `,
-    chartData: {
-      taller,
-      placa,
-      afuera,
-      enPiscina
-    }
+      <li>Total de Motores Registrados: <strong>${total}</strong></li>
+      <li>Taller por Mantenimiento: <strong>${taller}</strong></li>
+      <li>Problemas de Placa: <strong>${placa}</strong></li>
+      <li>Afuera por Mantenimiento: <strong>${afuera}</strong></li>
+      <li>Motores en Piscina: <strong>${enPiscina}</strong></li>
+    `
   };
 }
 
@@ -797,14 +777,9 @@ function toggleResumenEquipos() {
 function refreshResumenMotoresInline() {
   const sector = document.getElementById('filter-sector-motores').value;
   if (!sector) return;
-  const { title, body, chartData } = buildResumenMotoresHTML(sector);
+  const { title, body } = buildResumenMotoresHTML(sector);
   document.getElementById('motores-resumen-title').textContent = title;
   document.getElementById('motores-resumen-body').innerHTML = body;
-  
-  // Renderizar gráficas después de actualizar el HTML
-  setTimeout(() => {
-    renderMotoresCharts(chartData);
-  }, 100);
 }
 
 function renderMotoresCharts(data) {
@@ -3285,20 +3260,20 @@ function renderResumenGeneralSummary(sector, tipo) {
   document.getElementById('resumen-sector-label').textContent = sector;
 
   if (tipo === 'motores') {
-    const { title: t, body, chartData } = buildResumenMotoresHTML(sector);
+    const { title: t, body } = buildResumenMotoresHTML(sector);
     title.textContent = t;
     panel.innerHTML = body;
     
-    // Renderizar gráficas de motores
+    // Renderizar gráficas de motores en resumen general
     setTimeout(() => {
-      renderMotoresCharts(chartData);
+      renderResumenMotoresCharts(sector);
     }, 100);
   } else {
     const { title: t, body } = buildResumenEquiposHTML(sector);
     title.textContent = t;
     panel.innerHTML = body;
     
-    // Renderizar gráficas de equipos
+    // Renderizar gráficas de equipos en resumen general
     setTimeout(() => {
       renderResumenEquiposCharts(sector);
     }, 100);
@@ -3512,6 +3487,29 @@ function renderResumenEquiposCharts(sector) {
   
   // Crear gráfica circular
   createPieChart(labels, values, 'Distribución de Equipos');
+}
+
+function renderResumenMotoresCharts(sector) {
+  const motores = data.motores.filter(m => m.sector === sector);
+  
+  // Calcular datos para las gráficas
+  const taller = motores.filter(m => m.estadoMotor === 'Taller por Mantenimiento').length;
+  const placa = motores.filter(m => m.estadoMotor === 'Placa').length;
+  const afuera = motores.filter(m => m.estadoMotor === 'Afuera por Mantenimiento').length;
+  const enPiscina = motores.filter(m => m.estadoMotor === 'Piscinas').length;
+  
+  const labels = ['Taller por Mantenimiento', 'Problemas de Placa', 'Afuera por Mantenimiento', 'Motores en Piscina'];
+  const values = [taller, placa, afuera, enPiscina];
+  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
+  
+  // Limpiar gráficas anteriores
+  clearCharts();
+  
+  // Crear gráfica de barras
+  createBarChart(labels, values, 'Cantidad de Motores');
+  
+  // Crear gráfica circular
+  createPieChart(labels, values, 'Distribución de Motores');
 }
 
 function renderResumen() {
