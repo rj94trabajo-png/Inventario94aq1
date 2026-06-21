@@ -698,41 +698,19 @@ function buildResumenEquiposHTML(sector) {
   return {
     title: `Resumen del ${sector}`,
     body: `
-      <div class="resumen-stats">
-        <ul class="resumen-lines">
-          <li>Piscinas Activas: <strong>${activas}</strong></li>
-          <li>Piscinas Pescadas: <strong>${pescadas}</strong></li>
-          <li>Tolvas Activas: <strong>${tolvasActivas}</strong></li>
-          <li>Tolvas Inactivas: <strong>${tolvasInactivas}</strong></li>
-          <li>Motores Activos en Piscina: <strong>${motoresActivos}</strong></li>
-          <li>Motores Inactivos por Pesca: <strong>${motoresInactivosPorPesca}</strong></li>
-          <li>Tolvas: <strong>${tolvas}</strong></li>
-          <li>Motores: <strong>${motores}</strong></li>
-          <li>SF200: <strong>${sf200Display}</strong></li>
-          <li>Hidrofos: <strong>${hidrofos}</strong></li>
-          <li>Emas Operativos: <strong>${emasOp}</strong></li>
-          <li>Emas Inactivos: <strong>${emasIn}</strong></li>
-        </ul>
-      </div>
-      <div class="resumen-charts">
-        <div class="chart-container">
-          <h3>Distribución por Estado</h3>
-          <canvas id="equiposPieChart"></canvas>
-        </div>
-        <div class="chart-container">
-          <h3>Conteo por Estado</h3>
-          <canvas id="equiposBarChart"></canvas>
-        </div>
-      </div>
-    `,
-    chartData: {
-      piscinasPescadas: pescadas,
-      piscinasActivas: activas,
-      tolvasActivas: tolvasActivas,
-      tolvasInactivas: tolvasInactivas,
-      motoresActivos: motoresActivos,
-      motoresPorPesca: motoresInactivosPorPesca
-    }
+      <li>Piscinas Activas: <strong>${activas}</strong></li>
+      <li>Piscinas Pescadas: <strong>${pescadas}</strong></li>
+      <li>Tolvas Activas: <strong>${tolvasActivas}</strong></li>
+      <li>Tolvas Inactivas: <strong>${tolvasInactivas}</strong></li>
+      <li>Motores Activos en Piscina: <strong>${motoresActivos}</strong></li>
+      <li>Motores Inactivos por Pesca: <strong>${motoresInactivosPorPesca}</strong></li>
+      <li>Tolvas: <strong>${tolvas}</strong></li>
+      <li>Motores: <strong>${motores}</strong></li>
+      <li>SF200: <strong>${sf200Display}</strong></li>
+      <li>Hidrofos: <strong>${hidrofos}</strong></li>
+      <li>Emas Operativos: <strong>${emasOp}</strong></li>
+      <li>Emas Inactivos: <strong>${emasIn}</strong></li>
+    `
   };
 }
 
@@ -786,92 +764,9 @@ function showResumenSector(sector) {
 function refreshResumenEquiposInline() {
   const sector = document.getElementById('filter-sector-equipos').value;
   if (!sector) return;
-  const { title, body, chartData } = buildResumenEquiposHTML(sector);
+  const { title, body } = buildResumenEquiposHTML(sector);
   document.getElementById('equipos-resumen-title').textContent = title;
   document.getElementById('equipos-resumen-body').innerHTML = body;
-  
-  // Renderizar gráficas después de actualizar el HTML
-  setTimeout(() => {
-    renderEquiposCharts(chartData);
-  }, 100);
-}
-
-function renderEquiposCharts(data) {
-  // Destruir gráficas anteriores si existen
-  const pieCanvas = document.getElementById('equiposPieChart');
-  const barCanvas = document.getElementById('equiposBarChart');
-  
-  if (pieCanvas && pieCanvas.chart) {
-    pieCanvas.chart.destroy();
-  }
-  if (barCanvas && barCanvas.chart) {
-    barCanvas.chart.destroy();
-  }
-  
-  // Datos para las gráficas
-  const labels = ['Piscinas Pescadas', 'Piscinas Activas', 'Tolvas Activas', 'Tolvas Inactivas', 'Motores Activos', 'Motores por Pesca'];
-  const values = [data.piscinasPescadas, data.piscinasActivas, data.tolvasActivas, data.tolvasInactivas, data.motoresActivos, data.motoresPorPesca];
-  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
-  
-  // Gráfica de círculo (Pie Chart)
-  if (pieCanvas) {
-    pieCanvas.chart = new Chart(pieCanvas, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: values,
-          backgroundColor: colors,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              font: {
-                size: 10
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-  
-  // Gráfica de barras
-  if (barCanvas) {
-    barCanvas.chart = new Chart(barCanvas, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Cantidad',
-          data: values,
-          backgroundColor: colors,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false
-          }
-        }
-      }
-    });
-  }
 }
 
 function showResumenEquiposInline() {
@@ -3390,13 +3285,23 @@ function renderResumenGeneralSummary(sector, tipo) {
   document.getElementById('resumen-sector-label').textContent = sector;
 
   if (tipo === 'motores') {
-    const { title: t, body } = buildResumenMotoresHTML(sector);
+    const { title: t, body, chartData } = buildResumenMotoresHTML(sector);
     title.textContent = t;
     panel.innerHTML = body;
+    
+    // Renderizar gráficas de motores
+    setTimeout(() => {
+      renderMotoresCharts(chartData);
+    }, 100);
   } else {
     const { title: t, body } = buildResumenEquiposHTML(sector);
     title.textContent = t;
     panel.innerHTML = body;
+    
+    // Renderizar gráficas de equipos
+    setTimeout(() => {
+      renderResumenEquiposCharts(sector);
+    }, 100);
   }
 }
 
@@ -3582,6 +3487,31 @@ function clearCharts() {
     chartPieInstance.destroy();
     chartPieInstance = null;
   }
+}
+
+function renderResumenEquiposCharts(sector) {
+  const equipos = data.equipos.filter(e => e.sector === sector);
+  
+  // Calcular datos para las gráficas
+  const piscinasPescadas = equipos.filter(e => e.estadoPiscina === 'Pescada').length;
+  const piscinasActivas = equipos.filter(e => e.estadoPiscina === 'Activa').length;
+  const tolvasActivas = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
+  const tolvasInactivas = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
+  const motoresActivos = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
+  const motoresPorPesca = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
+  
+  const labels = ['Piscinas Pescadas', 'Piscinas Activas', 'Tolvas Activas', 'Tolvas Inactivas', 'Motores Activos', 'Motores por Pesca'];
+  const values = [piscinasPescadas, piscinasActivas, tolvasActivas, tolvasInactivas, motoresActivos, motoresPorPesca];
+  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+  
+  // Limpiar gráficas anteriores
+  clearCharts();
+  
+  // Crear gráfica de barras
+  createBarChart(labels, values, 'Cantidad de Equipos');
+  
+  // Crear gráfica circular
+  createPieChart(labels, values, 'Distribución de Equipos');
 }
 
 function renderResumen() {
