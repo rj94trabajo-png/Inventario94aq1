@@ -691,7 +691,8 @@ function buildResumenEquiposHTML(sector) {
   // Calcular tolvas activas e inactivas
   const tolvasActivas = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
   const tolvasInactivas = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
-  // Calcular motores inactivos por pesca
+  // Calcular motores activos e inactivos por pesca
+  const motoresActivos = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
   const motoresInactivosPorPesca = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
 
   return {
@@ -701,6 +702,7 @@ function buildResumenEquiposHTML(sector) {
       <li>Piscinas Pescadas: <strong>${pescadas}</strong></li>
       <li>Tolvas Activas: <strong>${tolvasActivas}</strong></li>
       <li>Tolvas Inactivas: <strong>${tolvasInactivas}</strong></li>
+      <li>Motores Activos: <strong>${motoresActivos}</strong></li>
       <li>Motores Inactivos por Pesca: <strong>${motoresInactivosPorPesca}</strong></li>
       <li>Tolvas: <strong>${tolvas}</strong></li>
       <li>Motores: <strong>${motores}</strong></li>
