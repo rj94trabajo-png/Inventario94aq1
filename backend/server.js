@@ -1421,6 +1421,107 @@ app.delete('/api/instalaciones-sensores/:id', checkSectorPermission, async (req,
   }
 });
 
+// ==================== LOTES DE SENSORES ====================
+
+// Obtener todos los lotes de sensores
+app.get('/api/lotes-sensores', async (req, res) => {
+  try {
+    const { sector } = req.query;
+    let query = `
+      SELECT * FROM lotes_sensores
+    `;
+    const params = [];
+
+    if (sector) {
+      query += ' WHERE sector = $1';
+      params.push(sector);
+    }
+
+    query += ' ORDER BY fecha_registro DESC';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error obteniendo lotes de sensores:', error);
+    res.status(500).json({ error: 'Error al obtener lotes de sensores' });
+  }
+});
+
+// Crear lote de sensor
+app.post('/api/lotes-sensores', checkSectorPermission, async (req, res) => {
+  const { id, sector, codigo_lote } = req.body;
+
+  // Validaciones
+  if (!sector) return res.status(400).json({ error: 'El sector es requerido' });
+  if (!codigo_lote) return res.status(400).json({ error: 'El código de lote es requerido' });
+
+  // Eliminar espacios del código de lote
+  const codigoLoteSinEspacios = codigo_lote.replace(/\s/g, '');
+
+  if (!codigoLoteSinEspacios) return res.status(400).json({ error: 'El código de lote no puede estar vacío' });
+
+  try {
+    const query = `
+      INSERT INTO lotes_sensores (id, sector, codigo_lote)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `;
+    const result = await pool.query(query, [id, sector, codigoLoteSinEspacios]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error guardando lote de sensor:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Ya existe un lote con este código en este sector' });
+    }
+    res.status(500).json({ error: 'Error al guardar lote de sensor: ' + error.message });
+  }
+});
+
+// Actualizar lote de sensor
+app.put('/api/lotes-sensores/:id', checkSectorPermission, async (req, res) => {
+  const { sector, codigo_lote } = req.body;
+
+  // Validaciones
+  if (!sector) return res.status(400).json({ error: 'El sector es requerido' });
+  if (!codigo_lote) return res.status(400).json({ error: 'El código de lote es requerido' });
+
+  // Eliminar espacios del código de lote
+  const codigoLoteSinEspacios = codigo_lote.replace(/\s/g, '');
+
+  if (!codigoLoteSinEspacios) return res.status(400).json({ error: 'El código de lote no puede estar vacío' });
+
+  try {
+    const query = `
+      UPDATE lotes_sensores
+      SET sector = $1, codigo_lote = $2
+      WHERE id = $3
+      RETURNING *
+    `;
+    const result = await pool.query(query, [sector, codigoLoteSinEspacios, req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Lote de sensor no encontrado' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error actualizando lote de sensor:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Ya existe un lote con este código en este sector' });
+    }
+    res.status(500).json({ error: 'Error al actualizar lote de sensor: ' + error.message });
+  }
+});
+
+// Eliminar lote de sensor
+app.delete('/api/lotes-sensores/:id', checkSectorPermission, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM lotes_sensores WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Lote de sensor eliminado' });
+  } catch (error) {
+    console.error('Error eliminando lote de sensor:', error);
+    res.status(500).json({ error: 'Error al eliminar lote de sensor' });
+  }
+});
+
 // ==================== AUTENTICACIÓN ====================
 
 // Login

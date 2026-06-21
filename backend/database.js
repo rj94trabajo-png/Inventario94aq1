@@ -168,6 +168,16 @@ async function initDatabase() {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS lotes_sensores (
+        id VARCHAR(50) PRIMARY KEY,
+        sector VARCHAR(50) NOT NULL,
+        codigo_lote VARCHAR(100) NOT NULL,
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(sector, codigo_lote)
+      );
+    `);
+
     // Tabla de usuarios
     await client.query(`
       CREATE TABLE IF NOT EXISTS usuarios (

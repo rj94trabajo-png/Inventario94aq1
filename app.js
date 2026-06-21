@@ -563,6 +563,23 @@ async function fetchInstalacionesSensores(sector = '') {
   }
 }
 
+async function fetchLotesSensores(sector = '') {
+  try {
+    const url = sector ? `${API_BASE}/lotes-sensores?sector=${encodeURIComponent(sector)}` : `${API_BASE}/lotes-sensores`;
+    const response = await fetch(url, getAuthHeaders());
+    const lotes = await response.json();
+    return lotes.map(l => ({
+      id: l.id,
+      sector: l.sector,
+      codigoLote: l.codigo_lote,
+      fechaRegistro: l.fecha_registro
+    }));
+  } catch (error) {
+    console.error('Error fetching lotes sensores:', error);
+    return [];
+  }
+}
+
 async function fetchMotores(sector = '') {
   try {
     const url = sector ? `${API_BASE}/motores?sector=${encodeURIComponent(sector)}` : `${API_BASE}/motores`;
@@ -1693,12 +1710,16 @@ function updateComponentesCharts(instalaciones) {
 function renderSensores() {
   // Event listeners para los botones de sensores
   const btnRegistro = document.getElementById('btn-registro-sensores');
+  const btnLote = document.getElementById('btn-lote-sensores');
   const btnInstalacion = document.getElementById('btn-instalacion-sensores');
   const btnResumen = document.getElementById('btn-resumen-sensores');
   const sectorSelect = document.getElementById('filter-sector-sensores');
 
   if (btnRegistro) {
     btnRegistro.addEventListener('click', () => showSensoresSubsection('registro'));
+  }
+  if (btnLote) {
+    btnLote.addEventListener('click', () => showSensoresSubsection('lote'));
   }
   if (btnInstalacion) {
     btnInstalacion.addEventListener('click', () => showSensoresSubsection('instalacion'));
@@ -1712,19 +1733,20 @@ function renderSensores() {
     const updateButtons = () => {
       const hasSector = sectorSelect.value !== '';
       if (btnRegistro) btnRegistro.disabled = !hasSector;
+      if (btnLote) btnLote.disabled = !hasSector;
       if (btnInstalacion) btnInstalacion.disabled = !hasSector;
       if (btnResumen) btnResumen.disabled = !hasSector;
     };
     sectorSelect.addEventListener('change', async () => {
       const hasSector = sectorSelect.value !== '';
       const activeSubsection = sensoresSubsection;
-      
+
       // Limpiar contenido cuando cambia el sector
       const content = document.getElementById('sensores-content');
       if (content) {
         content.innerHTML = '';
       }
-      
+
       // Si hay una subsección activa y hay sector seleccionado, volver a renderizar
       if (activeSubsection && hasSector) {
         sensoresSubsection = activeSubsection;
@@ -1732,7 +1754,7 @@ function renderSensores() {
       } else {
         sensoresSubsection = null;
       }
-      
+
       updateButtons();
     });
     updateButtons(); // Inicializar estado
@@ -1754,6 +1776,9 @@ async function showSensoresSubsection(subsection) {
   switch (subsection) {
     case 'registro':
       await renderRegistroSensores(sector);
+      break;
+    case 'lote':
+      await renderLoteSensores(sector);
       break;
     case 'instalacion':
       await renderInstalacionSensores(sector);
@@ -1806,6 +1831,52 @@ async function renderRegistroSensores(sector) {
     btnAdd.addEventListener('click', function(e) {
       e.preventDefault();
       window.openModalSensor();
+    });
+  }
+}
+
+async function renderLoteSensores(sector) {
+  const content = document.getElementById('sensores-content');
+  const lotes = await fetchLotesSensores(sector);
+
+  content.innerHTML = `
+    <div class="card componentes-subsection">
+      <div class="componentes-subsection-header">
+        <h3>📦 Lotes de Sensores</h3>
+        <button class="btn btn-primary btn-sm" id="btn-add-lote-sensor">+ Añadir Lote</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Código de Lote</th>
+              <th>Fecha Registro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lotes.length === 0 ? '<tr><td colspan="3"><div class="empty-state"><div class="icon">📦</div><p>No hay lotes registrados</p></div></td></tr>' :
+            lotes.map(l => `
+              <tr>
+                <td><strong>${l.codigoLote}</strong></td>
+                <td>${formatDate(l.fechaRegistro)}</td>
+                <td class="actions">
+                  <button class="btn btn-secondary btn-sm" onclick="window.openModalLoteSensor('${l.id}')">Editar</button>
+                  <button class="btn btn-danger btn-sm" onclick="window.deleteLoteSensor('${l.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const btnAdd = document.getElementById('btn-add-lote-sensor');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.openModalLoteSensor();
     });
   }
 }
@@ -2062,6 +2133,92 @@ window.deleteSensor = async function(id) {
   } catch (error) {
     console.error('Error deleting sensor:', error);
     showToast('Error al eliminar sensor. Por favor intente nuevamente.');
+  }
+};
+
+// Modal para lote de sensor
+window.openModalLoteSensor = async function(id = null) {
+  editingId = id;
+  const sector = document.getElementById('filter-sector-sensores').value;
+
+  const lotes = await fetchLotesSensores(sector);
+  const lote = id ? lotes.find(l => l.id === id) : {};
+
+  document.getElementById('modal-title').textContent = id ? 'Actualizar Lote de Sensor' : 'Nuevo Lote de Sensor';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group">
+      <label>Sector *</label>
+      <select id="f-sector" disabled>
+        <option value="${sector}">${sector}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Código de Lote *</label>
+      <input type="text" id="f-codigo-lote" value="${lote.codigoLote || ''}" placeholder="Sin espacios" autocomplete="off">
+    </div>
+  `;
+
+  // Agregar restricción para no permitir espacios
+  const codigoLoteInput = document.getElementById('f-codigo-lote');
+  if (codigoLoteInput) {
+    codigoLoteInput.addEventListener('input', () => {
+      codigoLoteInput.value = codigoLoteInput.value.replace(/\s/g, '');
+    });
+  }
+
+  document.getElementById('modal-save').onclick = saveLoteSensor;
+  document.getElementById('modal-overlay').classList.add('open');
+};
+
+async function saveLoteSensor() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
+  const sector = document.getElementById('filter-sector-sensores').value;
+  const codigoLote = document.getElementById('f-codigo-lote').value.trim();
+
+  if (!codigoLote) { showToast('Debe ingresar el código de lote.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+
+  const lote = {
+    id: editingId || generateId(),
+    sector,
+    codigo_lote: codigoLote
+  };
+
+  try {
+    const url = editingId ? `${API_BASE}/lotes-sensores/${editingId}` : `${API_BASE}/lotes-sensores`;
+    const method = editingId ? 'PUT' : 'POST';
+
+    const response = await fetch(url, getAuthHeaders({
+      method: method,
+      body: JSON.stringify(lote)
+    }));
+    if (!response.ok) throw new Error('Error al guardar lote de sensor');
+
+    closeModal();
+    showToast('Datos guardados');
+    await showSensoresSubsection('lote');
+  } catch (error) {
+    console.error('Error saving lote sensor:', error);
+    showToast('Error al guardar lote. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
+  }
+}
+
+window.deleteLoteSensor = async function(id) {
+  try {
+    const response = await fetch(`${API_BASE}/lotes-sensores/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
+    if (!response.ok) throw new Error('Error al eliminar lote de sensor');
+    showToast('Lote eliminado');
+    await showSensoresSubsection('lote');
+  } catch (error) {
+    console.error('Error deleting lote sensor:', error);
+    showToast('Error al eliminar lote. Por favor intente nuevamente.');
   }
 };
 
