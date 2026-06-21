@@ -702,7 +702,7 @@ function buildResumenEquiposHTML(sector) {
       <li>Piscinas Pescadas: <strong>${pescadas}</strong></li>
       <li>Tolvas Activas: <strong>${tolvasActivas}</strong></li>
       <li>Tolvas Inactivas: <strong>${tolvasInactivas}</strong></li>
-      <li>Motores Activos: <strong>${motoresActivos}</strong></li>
+      <li>Motores Activos en Piscinas: <strong>${motoresActivos}</strong></li>
       <li>Motores Inactivos por Pesca: <strong>${motoresInactivosPorPesca}</strong></li>
       <li>Tolvas: <strong>${tolvas}</strong></li>
       <li>Motores: <strong>${motores}</strong></li>
