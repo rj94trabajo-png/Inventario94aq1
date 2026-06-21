@@ -141,6 +141,33 @@ async function initDatabase() {
       console.error('Error verificando/agregando columna taller_detalles:', error);
     }
 
+    // Tablas para sensores
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sensores (
+        id VARCHAR(50) PRIMARY KEY,
+        sector VARCHAR(50) NOT NULL,
+        nombre VARCHAR(100) NOT NULL,
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(sector, nombre)
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS instalaciones_sensores (
+        id VARCHAR(50) PRIMARY KEY,
+        sector VARCHAR(50) NOT NULL,
+        sensor_id VARCHAR(50) NOT NULL,
+        punto_instalacion VARCHAR(50) NOT NULL,
+        piscina_numero VARCHAR(10),
+        tolva_numero VARCHAR(10),
+        motor_codigo VARCHAR(50),
+        sf200_zona VARCHAR(10),
+        taller_detalles TEXT,
+        fecha_instalacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sensor_id) REFERENCES sensores(id) ON DELETE RESTRICT
+      );
+    `);
+
     // Tabla de usuarios
     await client.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
