@@ -4644,6 +4644,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                   <tr>
                     <th>Piscina</th>
                     <th>Tolva</th>
+                    <th>Cant. Baterías</th>
                     <th>Fecha</th>
                     <th>Lote</th>
                   </tr>
@@ -4653,6 +4654,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                     <tr>
                       <td>${i.piscinaNumero}</td>
                       <td>${i.tolvaNumero}</td>
+                      <td>2</td>
                       <td>${formatDate(i.fechaInstalacion)}</td>
                       <td>${i.loteNombre}</td>
                     </tr>
@@ -4676,6 +4678,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                     <th>Amperaje</th>
                     <th>Piscina</th>
                     <th>Tolva</th>
+                    <th>Cant. Baterías</th>
                     <th>Fecha</th>
                   </tr>
                 </thead>
@@ -4686,6 +4689,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                       <td>${i.amperaje}A</td>
                       <td>${i.piscinaNumero}</td>
                       <td>${i.tolvaNumero}</td>
+                      <td>2</td>
                       <td>${formatDate(i.fechaInstalacion)}</td>
                     </tr>
                   `).join('')}
@@ -4717,6 +4721,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                   <tr>
                     <th>Piscina</th>
                     <th>Tolva</th>
+                    <th>Cant. Baterías</th>
                     <th>Fecha</th>
                     <th>Lote</th>
                   </tr>
@@ -4726,6 +4731,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                     <tr>
                       <td>${i.piscinaNumero}</td>
                       <td>${i.tolvaNumero}</td>
+                      <td>2</td>
                       <td>${formatDate(i.fechaInstalacion)}</td>
                       <td>${i.loteNombre}</td>
                     </tr>
@@ -4761,6 +4767,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                     <th>Amperaje</th>
                     <th>Piscina</th>
                     <th>Tolva</th>
+                    <th>Cant. Baterías</th>
                     <th>Fecha</th>
                   </tr>
                 </thead>
@@ -4771,6 +4778,7 @@ function renderResumenSummaryContent(tipo, instalaciones, mes = '', semana = '',
                       <td>${i.amperaje}A</td>
                       <td>${i.piscinaNumero}</td>
                       <td>${i.tolvaNumero}</td>
+                      <td>2</td>
                       <td>${formatDate(i.fechaInstalacion)}</td>
                     </tr>
                   `).join('')}
@@ -5072,6 +5080,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
                   <tr>
                     <th>Piscina</th>
                     <th>Tolva</th>
+                    <th>Cant. Baterías</th>
                     <th>Fecha</th>
                     <th>Lote</th>
                   </tr>
@@ -5081,6 +5090,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
                     <tr>
                       <td>${i.piscinaNumero}</td>
                       <td>${i.tolvaNumero}</td>
+                      <td>2</td>
                       <td>${formatDate(i.fechaInstalacion)}</td>
                       <td>${i.loteNombre}</td>
                     </tr>
@@ -5116,6 +5126,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
                     <th>Amperaje</th>
                     <th>Piscina</th>
                     <th>Tolva</th>
+                    <th>Cant. Baterías</th>
                     <th>Fecha</th>
                   </tr>
                 </thead>
@@ -5126,6 +5137,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
                       <td>${i.amperaje}A</td>
                       <td>${i.piscinaNumero}</td>
                       <td>${i.tolvaNumero}</td>
+                      <td>2</td>
                       <td>${formatDate(i.fechaInstalacion)}</td>
                     </tr>
                   `).join('')}
