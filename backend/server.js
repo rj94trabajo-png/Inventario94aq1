@@ -1374,6 +1374,9 @@ app.get('/api/instalaciones-sensores/:id', async (req, res) => {
 app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) => {
   const { id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id } = req.body;
 
+  // Convertir string vacío a null para lote_id
+  const loteIdValue = (lote_id === '' || lote_id === undefined || lote_id === null) ? null : lote_id;
+
   // Validaciones
   if (!sector) return res.status(400).json({ error: 'El sector es requerido' });
   if (!sensor_id) return res.status(400).json({ error: 'El sensor es requerido' });
@@ -1392,7 +1395,7 @@ app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) 
         WHERE id = $10
         RETURNING *
       `;
-      result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id, id]);
+      result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, loteIdValue, id]);
     } else {
       // Si no existe, insertar
       const query = `
@@ -1400,7 +1403,7 @@ app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `;
-      result = await pool.query(query, [id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id]);
+      result = await pool.query(query, [id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, loteIdValue]);
     }
 
     res.json(result.rows[0]);
@@ -1414,6 +1417,9 @@ app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) 
 app.put('/api/instalaciones-sensores/:id', checkSectorPermission, async (req, res) => {
   const { sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id } = req.body;
 
+  // Convertir string vacío a null para lote_id
+  const loteIdValue = (lote_id === '' || lote_id === undefined || lote_id === null) ? null : lote_id;
+
   // Validaciones
   if (!sector) return res.status(400).json({ error: 'El sector es requerido' });
   if (!sensor_id) return res.status(400).json({ error: 'El sensor es requerido' });
@@ -1426,7 +1432,7 @@ app.put('/api/instalaciones-sensores/:id', checkSectorPermission, async (req, re
       WHERE id = $10
       RETURNING *
     `;
-    const result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id, req.params.id]);
+    const result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, loteIdValue, req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Instalación de sensor no encontrada' });
     }
