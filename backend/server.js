@@ -42,6 +42,32 @@ app.use(express.static(require('path').join(__dirname, '..'), {
 // Inicializar base de datos
 initDatabase().catch(console.error);
 
+// Migración: Eliminar restricción UNIQUE de instalaciones_sensores
+async function migrateDatabase() {
+  try {
+    const client = await pool.connect();
+    try {
+      // Intentar eliminar la restricción UNIQUE si existe
+      await client.query(`
+        ALTER TABLE instalaciones_sensores
+        DROP CONSTRAINT IF EXISTS instalaciones_sensores_piscina_numero_sf200_zona_key
+      `);
+      console.log('✅ Migración aplicada: UNIQUE constraint eliminada de instalaciones_sensores');
+    } catch (error) {
+      console.log('ℹ️ Nota: La restricción UNIQUE podría no existir o tener otro nombre:', error.message);
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error ejecutando migración:', error);
+  }
+}
+
+// Ejecutar migración después de inicializar la base de datos
+setTimeout(() => {
+  migrateDatabase().catch(console.error);
+}, 2000);
+
 // Crear usuarios automáticamente si no existen
 async function ensureUsersExist() {
   const bcrypt = require('bcrypt');

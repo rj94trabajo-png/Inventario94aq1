@@ -2423,11 +2423,21 @@ async function saveInstalacionSensor() {
     const url = editingId ? `${API_BASE}/instalaciones-sensores/${editingId}` : `${API_BASE}/instalaciones-sensores`;
     const method = editingId ? 'PUT' : 'POST';
     
+    console.log('Sending request to:', url);
+    console.log('Request body:', instalacion);
+    
     const response = await fetch(url, getAuthHeaders({
       method: method,
       body: JSON.stringify(instalacion)
     }));
-    if (!response.ok) throw new Error('Error al guardar instalación de sensor');
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error response:', errorData);
+      throw new Error(errorData.error || 'Error al guardar instalación de sensor');
+    }
 
     closeModal();
     showToast('Datos guardados');
