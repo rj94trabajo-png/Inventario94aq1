@@ -41,7 +41,7 @@ body {
   flex-direction: column;
   position: fixed;
   top: 0;
-  left: -250px;
+  left: 0;
   height: 100vh;
   z-index: 100;
   transition: left 0.3s ease;
@@ -140,7 +140,7 @@ body {
 /* Main content */
 .main {
   flex: 1;
-  margin-left: 0;
+  margin-left: 250px;
   padding: 2rem;
   padding-top: 4rem;
 }

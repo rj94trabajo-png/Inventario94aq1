@@ -3443,11 +3443,13 @@ function renderResumen() {
   if (tipo === 'equipos') populateResumenPiscinaSearch(sector);
   if (tipo === 'motores') searchMotores.value = '';
 
-  // Manejar baterías y componentes de manera diferente
+  // Manejar baterías, componentes y sensores de manera diferente
   if (tipo === 'baterias') {
     renderResumenBateriasPage(sector);
   } else if (tipo === 'componentes') {
     renderResumenComponentesPage(sector);
+  } else if (tipo === 'sensores') {
+    renderResumenSensoresPage(sector);
   } else {
     renderResumenGeneralSummary(sector, tipo);
     renderResumenGeneralTable();
@@ -3581,6 +3583,95 @@ async function renderResumenComponentesPage(sector) {
     console.error('Error renderizando resumen de componentes:', error);
     const content = document.getElementById('resumen-general-content');
     content.innerHTML = '<p class="hint-text">Error al cargar datos de componentes.</p>';
+  }
+}
+
+async function renderResumenSensoresPage(sector) {
+  try {
+    const content = document.getElementById('resumen-general-content');
+    const instalaciones = await fetchInstalacionesSensores(sector);
+
+    // Generar lista de sensores disponibles
+    const sensoresDisponibles = [...new Set(instalaciones.map(i => i.sensorNombre))].sort();
+    const mesesDisponibles = obtenerMesesDisponiblesSensores(instalaciones);
+    const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const lotesDisponibles = [...new Set(instalaciones.filter(i => i.loteCodigo).map(i => i.loteCodigo))].sort();
+
+    content.innerHTML = `
+      <div class="resumen-sector-header">
+        <h3 id="resumen-sector-label">${sector}</h3>
+        <div class="resumen-componentes-filters">
+          <div class="form-group">
+            <label>Sensor</label>
+            <select id="filter-sensor" class="form-select">
+              <option value="">Todos los sensores</option>
+              ${sensoresDisponibles.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Lote</label>
+            <select id="filter-lote-sensores" class="form-select">
+              <option value="">Seleccionar lote</option>
+              ${lotesDisponibles.map(l => `<option value="${l}">${l}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mes</label>
+            <select id="filter-mes-sensores" class="form-select">
+              <option value="">Todos los meses</option>
+              ${mesesDisponibles.map(m => `<option value="${m}" ${m === mesActual ? 'selected' : ''}>${formatMes(m)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
+      </div>
+      <div class="resumen-layout">
+        <div class="resumen-main">
+          <div class="card resumen-panel resumen-panel-general">
+            <span class="resumen-panel-title" id="resumen-general-title">Resumen de Sensores</span>
+            <div id="resumen-sensores-content"></div>
+          </div>
+        </div>
+        <div class="resumen-charts">
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica de Barras</span>
+            <canvas id="chart-bar"></canvas>
+          </div>
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica Circular</span>
+            <canvas id="chart-pie"></canvas>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Re-adjuntar event listener al botón de exportar Excel
+    document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+
+    // Event listeners para filtros
+    const filterSensor = document.getElementById('filter-sensor');
+    const filterLote = document.getElementById('filter-lote-sensores');
+    const filterMes = document.getElementById('filter-mes-sensores');
+
+    filterSensor.addEventListener('input', () => {
+      filterLote.value = '';
+      aplicarFiltrosSensores(instalaciones);
+    });
+
+    filterLote.addEventListener('input', () => {
+      aplicarFiltrosSensores(instalaciones);
+    });
+
+    filterMes.addEventListener('input', () => {
+      aplicarFiltrosSensores(instalaciones);
+    });
+
+    // Renderizar resumen inicial
+    aplicarFiltrosSensores(instalaciones);
+  } catch (error) {
+    console.error('Error renderizando resumen de sensores:', error);
+    const content = document.getElementById('resumen-general-content');
+    content.innerHTML = '<p class="hint-text">Error al cargar datos de sensores.</p>';
   }
 }
 
