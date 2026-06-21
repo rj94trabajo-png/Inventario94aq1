@@ -166,10 +166,22 @@ async function initDatabase() {
         lote_id VARCHAR(50),
         fecha_instalacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (sensor_id) REFERENCES sensores(id) ON DELETE RESTRICT,
-        FOREIGN KEY (lote_id) REFERENCES lotes_sensores(id) ON DELETE SET NULL,
-        UNIQUE(piscina_numero, sf200_zona)
+        FOREIGN KEY (lote_id) REFERENCES lotes_sensores(id) ON DELETE SET NULL
       );
     `);
+
+    // Drop the UNIQUE constraint if it exists (migration)
+    try {
+      const constraintName = 'instalaciones_sensores_piscina_numero_sf200_zona_key';
+      await client.query(`
+        ALTER TABLE instalaciones_sensores
+        DROP CONSTRAINT IF EXISTS ${constraintName}
+      `);
+      console.log('✅ UNIQUE constraint dropped from instalaciones_sensores');
+    } catch (error) {
+      // Constraint might not exist or have a different name, that's ok
+      console.log('ℹ️ Note: Could not drop UNIQUE constraint (might not exist):', error.message);
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS lotes_sensores (

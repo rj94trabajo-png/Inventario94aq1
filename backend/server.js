@@ -1380,9 +1380,6 @@ app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) 
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando instalación de sensor:', error);
-    if (error.code === '23505') {
-      return res.status(400).json({ error: 'Ya existe una instalación con esta zona en la misma piscina' });
-    }
     res.status(500).json({ error: 'Error al guardar instalación de sensor: ' + error.message });
   }
 });
@@ -1410,9 +1407,6 @@ app.put('/api/instalaciones-sensores/:id', checkSectorPermission, async (req, re
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error actualizando instalación de sensor:', error);
-    if (error.code === '23505') {
-      return res.status(400).json({ error: 'Ya existe una instalación con esta zona en la misma piscina' });
-    }
     res.status(500).json({ error: 'Error al actualizar instalación de sensor: ' + error.message });
   }
 });
