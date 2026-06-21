@@ -805,6 +805,12 @@ document.querySelectorAll('.nav-links a').forEach(link => {
   link.addEventListener('click', e => {
     e.preventDefault();
     navigateTo(link.dataset.page);
+
+    // Cerrar sidebar después de seleccionar una opción
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      sidebar.classList.remove('open');
+    }
   });
 });
 
