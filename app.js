@@ -4431,6 +4431,7 @@ async function renderResumenBateriasSummary(sector) {
   });
   
   nombreFilter.addEventListener('change', () => {
+    loteFilter.value = 'Todos';
     const tipo = tipoRegistroSelect.value;
     const mes = mesFilter.value;
     const semana = semanaFilter.value;
