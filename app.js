@@ -1999,6 +1999,7 @@ async function renderResumenSensores(sector) {
   const filterMes = document.getElementById('filter-mes-sensores');
 
   filterSensor.addEventListener('input', () => {
+    filterLote.value = '';
     aplicarFiltrosSensores(instalaciones);
   });
 
