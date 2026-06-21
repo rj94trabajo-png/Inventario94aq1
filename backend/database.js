@@ -163,8 +163,11 @@ async function initDatabase() {
         motor_codigo VARCHAR(50),
         sf200_zona VARCHAR(10),
         taller_detalles TEXT,
+        lote_id VARCHAR(50),
         fecha_instalacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (sensor_id) REFERENCES sensores(id) ON DELETE RESTRICT
+        FOREIGN KEY (sensor_id) REFERENCES sensores(id) ON DELETE RESTRICT,
+        FOREIGN KEY (lote_id) REFERENCES lotes_sensores(id) ON DELETE SET NULL,
+        UNIQUE(piscina_numero, sf200_zona)
       );
     `);
 

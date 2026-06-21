@@ -555,6 +555,8 @@ async function fetchInstalacionesSensores(sector = '') {
       motorCodigo: i.motor_codigo,
       sf200Zona: i.sf200_zona,
       tallerDetalles: i.taller_detalles,
+      loteId: i.lote_id,
+      loteCodigo: i.lote_codigo,
       fechaInstalacion: i.fecha_instalacion
     }));
   } catch (error) {
@@ -1936,6 +1938,7 @@ async function renderInstalacionSensores(sector) {
 
 function getDetallesInstalacionSensor(instalacion) {
   const detalles = [];
+  if (instalacion.loteCodigo) detalles.push(`Lote: ${instalacion.loteCodigo}`);
   if (instalacion.piscinaNumero) detalles.push(`Piscina ${instalacion.piscinaNumero}`);
   if (instalacion.tolvaNumero) detalles.push(`Tolva ${instalacion.tolvaNumero}`);
   if (instalacion.motorCodigo) detalles.push(`Motor ${instalacion.motorCodigo}`);
@@ -2229,6 +2232,7 @@ window.openModalInstalacionSensor = async function(idOrData) {
   const piscinas = await fetchPiscinas(sector);
   const sensores = await fetchSensores(sector);
   const motores = await fetchMotores(sector);
+  const lotes = await fetchLotesSensores(sector);
 
   let instalacion = {};
   if (editingId) {
@@ -2249,6 +2253,13 @@ window.openModalInstalacionSensor = async function(idOrData) {
       <select id="f-sensor-id" required>
         <option value="">— Seleccione un sensor —</option>
         ${sensores.map(s => `<option value="${s.id}" ${instalacion.sensorId === s.id ? 'selected' : ''}>${s.nombre}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Lote (Opcional)</label>
+      <select id="f-lote-id">
+        <option value="">— Sin lote —</option>
+        ${lotes.map(l => `<option value="${l.id}" ${instalacion.loteId === l.id ? 'selected' : ''}>${l.codigoLote}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
@@ -2363,6 +2374,7 @@ async function saveInstalacionSensor() {
 
   const sector = document.getElementById('filter-sector-sensores').value;
   const sensorId = document.getElementById('f-sensor-id').value;
+  const loteId = document.getElementById('f-lote-id').value || null;
   const puntoInstalacion = document.getElementById('f-punto-instalacion').value;
 
   if (!sensorId) { showToast('Debe seleccionar un sensor.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
@@ -2398,6 +2410,7 @@ async function saveInstalacionSensor() {
     id: editingId || generateId(),
     sector,
     sensor_id: sensorId,
+    lote_id: loteId,
     punto_instalacion: puntoInstalacion,
     piscina_numero: piscinaNumero,
     tolva_numero: tolvaNumero,

@@ -1302,9 +1302,10 @@ app.get('/api/instalaciones-sensores', async (req, res) => {
   try {
     const { sector } = req.query;
     let query = `
-      SELECT isen.*, s.nombre as sensor_nombre
+      SELECT isen.*, s.nombre as sensor_nombre, l.codigo_lote as lote_codigo
       FROM instalaciones_sensores isen
       JOIN sensores s ON isen.sensor_id = s.id
+      LEFT JOIN lotes_sensores l ON isen.lote_id = l.id
     `;
     const params = [];
 
@@ -1345,7 +1346,7 @@ app.get('/api/instalaciones-sensores/:id', async (req, res) => {
 
 // Crear instalación de sensor
 app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) => {
-  const { id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles } = req.body;
+  const { id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id } = req.body;
 
   // Validaciones
   if (!sector) return res.status(400).json({ error: 'El sector es requerido' });
@@ -1355,37 +1356,40 @@ app.post('/api/instalaciones-sensores', checkSectorPermission, async (req, res) 
   try {
     // Verificar si ya existe una instalación de sensor con este ID
     const existingCheck = await pool.query('SELECT id FROM instalaciones_sensores WHERE id = $1', [id]);
-    
+
     let result;
     if (existingCheck.rows.length > 0) {
       // Si existe, actualizar
       const query = `
         UPDATE instalaciones_sensores
-        SET sector = $1, sensor_id = $2, punto_instalacion = $3, piscina_numero = $4, tolva_numero = $5, motor_codigo = $6, sf200_zona = $7, taller_detalles = $8
-        WHERE id = $9
+        SET sector = $1, sensor_id = $2, punto_instalacion = $3, piscina_numero = $4, tolva_numero = $5, motor_codigo = $6, sf200_zona = $7, taller_detalles = $8, lote_id = $9
+        WHERE id = $10
         RETURNING *
       `;
-      result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, id]);
+      result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id, id]);
     } else {
       // Si no existe, insertar
       const query = `
-        INSERT INTO instalaciones_sensores (id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO instalaciones_sensores (id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `;
-      result = await pool.query(query, [id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles]);
+      result = await pool.query(query, [id, sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id]);
     }
-    
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error guardando instalación de sensor:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Ya existe una instalación con esta zona en la misma piscina' });
+    }
     res.status(500).json({ error: 'Error al guardar instalación de sensor: ' + error.message });
   }
 });
 
 // Actualizar instalación de sensor
 app.put('/api/instalaciones-sensores/:id', checkSectorPermission, async (req, res) => {
-  const { sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles } = req.body;
+  const { sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id } = req.body;
 
   // Validaciones
   if (!sector) return res.status(400).json({ error: 'El sector es requerido' });
@@ -1395,17 +1399,20 @@ app.put('/api/instalaciones-sensores/:id', checkSectorPermission, async (req, re
   try {
     const query = `
       UPDATE instalaciones_sensores
-      SET sector = $1, sensor_id = $2, punto_instalacion = $3, piscina_numero = $4, tolva_numero = $5, motor_codigo = $6, sf200_zona = $7, taller_detalles = $8
-      WHERE id = $9
+      SET sector = $1, sensor_id = $2, punto_instalacion = $3, piscina_numero = $4, tolva_numero = $5, motor_codigo = $6, sf200_zona = $7, taller_detalles = $8, lote_id = $9
+      WHERE id = $10
       RETURNING *
     `;
-    const result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, req.params.id]);
+    const result = await pool.query(query, [sector, sensor_id, punto_instalacion, piscina_numero, tolva_numero, motor_codigo, sf200_zona, taller_detalles, lote_id, req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Instalación de sensor no encontrada' });
     }
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error actualizando instalación de sensor:', error);
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Ya existe una instalación con esta zona en la misma piscina' });
+    }
     res.status(500).json({ error: 'Error al actualizar instalación de sensor: ' + error.message });
   }
 });
