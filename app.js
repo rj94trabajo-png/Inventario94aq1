@@ -1868,7 +1868,7 @@ function getDetallesInstalacionSensor(instalacion) {
   if (instalacion.piscinaNumero) detalles.push(`Piscina ${instalacion.piscinaNumero}`);
   if (instalacion.tolvaNumero) detalles.push(`Tolva ${instalacion.tolvaNumero}`);
   if (instalacion.motorCodigo) detalles.push(`Motor ${instalacion.motorCodigo}`);
-  if (instalacion.sf200Zona) detalles.push(`Zona ${instalacion.sf200Zona}`);
+  if (instalacion.sf200Zona) detalles.push(instalacion.sf200Zona);
   if (instalacion.tallerDetalles) detalles.push(instalacion.tallerDetalles);
   return detalles.join(' - ') || '—';
 }
