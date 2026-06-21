@@ -211,6 +211,9 @@ async function handleLogin() {
       const componentesContent = document.getElementById('componentes-content');
       if (componentesContent) componentesContent.innerHTML = '';
       
+      const sensoresContent = document.getElementById('sensores-content');
+      if (sensoresContent) sensoresContent.innerHTML = '';
+      
       document.getElementById('login-overlay').classList.remove('open');
       document.getElementById('login-username').value = '';
       document.getElementById('login-password').value = '';
@@ -274,6 +277,9 @@ async function handleLogout() {
     
     const componentesContent = document.getElementById('componentes-content');
     if (componentesContent) componentesContent.innerHTML = '';
+    
+    const sensoresContent = document.getElementById('sensores-content');
+    if (sensoresContent) sensoresContent.innerHTML = '';
     
     showToast('Sesión cerrada');
     showLoginModal();
@@ -512,6 +518,47 @@ async function fetchInstalacionesComponentes(sector = '') {
     }));
   } catch (error) {
     console.error('Error fetching instalaciones componentes:', error);
+    return [];
+  }
+}
+
+async function fetchSensores(sector = '') {
+  try {
+    const url = sector ? `${API_BASE}/sensores?sector=${encodeURIComponent(sector)}` : `${API_BASE}/sensores`;
+    const response = await fetch(url, getAuthHeaders());
+    const sensores = await response.json();
+    return sensores.map(s => ({
+      id: s.id,
+      sector: s.sector,
+      nombre: s.nombre,
+      fechaRegistro: s.fecha_registro
+    }));
+  } catch (error) {
+    console.error('Error fetching sensores:', error);
+    return [];
+  }
+}
+
+async function fetchInstalacionesSensores(sector = '') {
+  try {
+    const url = sector ? `${API_BASE}/instalaciones-sensores?sector=${encodeURIComponent(sector)}` : `${API_BASE}/instalaciones-sensores`;
+    const response = await fetch(url, getAuthHeaders());
+    const instalaciones = await response.json();
+    return instalaciones.map(i => ({
+      id: i.id,
+      sector: i.sector,
+      sensorId: i.sensor_id,
+      sensorNombre: i.sensor_nombre,
+      puntoInstalacion: i.punto_instalacion,
+      piscinaNumero: i.piscina_numero,
+      tolvaNumero: i.tolva_numero,
+      motorCodigo: i.motor_codigo,
+      sf200Zona: i.sf200_zona,
+      tallerDetalles: i.taller_detalles,
+      fechaInstalacion: i.fecha_instalacion
+    }));
+  } catch (error) {
+    console.error('Error fetching instalaciones sensores:', error);
     return [];
   }
 }
@@ -758,6 +805,7 @@ function navigateTo(page) {
       case 'inventario': sectorSelectId = 'filter-sector-equipos'; break;
       case 'trabajos': sectorSelectId = 'filter-sector-trabajos'; break;
       case 'componentes': sectorSelectId = 'filter-sector-componentes'; break;
+      case 'sensores': sectorSelectId = 'filter-sector-sensores'; break;
       case 'resumen': sectorSelectId = 'filter-sector-resumen'; break;
     }
     
@@ -778,6 +826,7 @@ function renderPage(page) {
     case 'resumen': renderResumen(); break;
     case 'trabajos': renderTrabajos(); break;
     case 'componentes': renderComponentes(); break;
+    case 'sensores': renderSensores(); break;
   }
 }
 
@@ -1640,6 +1689,572 @@ function updateComponentesCharts(instalaciones) {
   createBarChart(labels, data, 'Cantidad de Instalaciones');
   createPieChart(labels, data, 'Distribución');
 }
+
+function renderSensores() {
+  // Event listeners para los botones de sensores
+  const btnRegistro = document.getElementById('btn-registro-sensores');
+  const btnInstalacion = document.getElementById('btn-instalacion-sensores');
+  const btnResumen = document.getElementById('btn-resumen-sensores');
+  const sectorSelect = document.getElementById('filter-sector-sensores');
+
+  if (btnRegistro) {
+    btnRegistro.addEventListener('click', () => showSensoresSubsection('registro'));
+  }
+  if (btnInstalacion) {
+    btnInstalacion.addEventListener('click', () => showSensoresSubsection('instalacion'));
+  }
+  if (btnResumen) {
+    btnResumen.addEventListener('click', () => showSensoresSubsection('resumen'));
+  }
+
+  // Habilitar/deshabilitar botones basado en sector seleccionado
+  if (sectorSelect) {
+    const updateButtons = () => {
+      const hasSector = sectorSelect.value !== '';
+      if (btnRegistro) btnRegistro.disabled = !hasSector;
+      if (btnInstalacion) btnInstalacion.disabled = !hasSector;
+      if (btnResumen) btnResumen.disabled = !hasSector;
+    };
+    sectorSelect.addEventListener('change', async () => {
+      const hasSector = sectorSelect.value !== '';
+      const activeSubsection = sensoresSubsection;
+      
+      // Limpiar contenido cuando cambia el sector
+      const content = document.getElementById('sensores-content');
+      if (content) {
+        content.innerHTML = '';
+      }
+      
+      // Si hay una subsección activa y hay sector seleccionado, volver a renderizar
+      if (activeSubsection && hasSector) {
+        sensoresSubsection = activeSubsection;
+        await showSensoresSubsection(activeSubsection);
+      } else {
+        sensoresSubsection = null;
+      }
+      
+      updateButtons();
+    });
+    updateButtons(); // Inicializar estado
+  }
+}
+
+let sensoresSubsection = null;
+
+async function showSensoresSubsection(subsection) {
+  const sector = document.getElementById('filter-sector-sensores').value;
+  if (!sector) {
+    showToast('Seleccione un sector primero');
+    return;
+  }
+
+  sensoresSubsection = subsection;
+  const content = document.getElementById('sensores-content');
+
+  switch (subsection) {
+    case 'registro':
+      await renderRegistroSensores(sector);
+      break;
+    case 'instalacion':
+      await renderInstalacionSensores(sector);
+      break;
+    case 'resumen':
+      await renderResumenSensores(sector);
+      break;
+  }
+}
+
+async function renderRegistroSensores(sector) {
+  const content = document.getElementById('sensores-content');
+  const sensores = await fetchSensores(sector);
+
+  content.innerHTML = `
+    <div class="card componentes-subsection">
+      <div class="componentes-subsection-header">
+        <h3>📋 Registro de Sensores</h3>
+        <button class="btn btn-primary btn-sm" id="btn-add-sensor">+ Añadir Sensor</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Fecha Registro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sensores.length === 0 ? '<tr><td colspan="3"><div class="empty-state"><div class="icon">📋</div><p>No hay sensores registrados</p></div></td></tr>' :
+            sensores.map(s => `
+              <tr>
+                <td><strong>${s.nombre}</strong></td>
+                <td>${formatDate(s.fechaRegistro)}</td>
+                <td class="actions">
+                  <button class="btn btn-secondary btn-sm" onclick="window.openModalSensor('${s.id}')">Editar</button>
+                  <button class="btn btn-danger btn-sm" onclick="window.deleteSensor('${s.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const btnAdd = document.getElementById('btn-add-sensor');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.openModalSensor();
+    });
+  }
+}
+
+async function renderInstalacionSensores(sector) {
+  const content = document.getElementById('sensores-content');
+  const instalaciones = await fetchInstalacionesSensores(sector);
+  const piscinas = await fetchPiscinas(sector);
+  const sensores = await fetchSensores(sector);
+  const motores = await fetchMotores(sector);
+
+  content.innerHTML = `
+    <div class="card componentes-subsection">
+      <div class="componentes-subsection-header">
+        <h3>🔧 Instalación de Sensores</h3>
+        <button class="btn btn-primary btn-sm" id="btn-add-instalacion-sensor">+ Nueva Instalación</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Sensor</th>
+              <th>Punto de Instalación</th>
+              <th>Detalles</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${instalaciones.length === 0 ? '<tr><td colspan="5"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de sensores</p></div></td></tr>' :
+            instalaciones.map(i => `
+              <tr>
+                <td><strong>${i.sensorNombre}</strong></td>
+                <td>${i.puntoInstalacion}</td>
+                <td>${getDetallesInstalacionSensor(i)}</td>
+                <td>${formatDate(i.fechaInstalacion)}</td>
+                <td class="actions">
+                  <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionSensor('${i.id}')">Editar</button>
+                  <button class="btn btn-danger btn-sm" onclick="window.deleteInstalacionSensor('${i.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const btnAdd = document.getElementById('btn-add-instalacion-sensor');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.openModalInstalacionSensor({ piscinas, sensores, motores });
+    });
+  }
+}
+
+function getDetallesInstalacionSensor(instalacion) {
+  const detalles = [];
+  if (instalacion.piscinaNumero) detalles.push(`Piscina ${instalacion.piscinaNumero}`);
+  if (instalacion.tolvaNumero) detalles.push(`Tolva ${instalacion.tolvaNumero}`);
+  if (instalacion.motorCodigo) detalles.push(`Motor ${instalacion.motorCodigo}`);
+  if (instalacion.sf200Zona) detalles.push(`Zona ${instalacion.sf200Zona}`);
+  if (instalacion.tallerDetalles) detalles.push(instalacion.tallerDetalles);
+  return detalles.join(' - ') || '—';
+}
+
+async function renderResumenSensores(sector) {
+  const content = document.getElementById('sensores-content');
+  const instalaciones = await fetchInstalacionesSensores(sector);
+
+  // Generar lista de sensores disponibles
+  const sensoresDisponibles = [...new Set(instalaciones.map(i => i.sensorNombre))].sort();
+  const mesesDisponibles = obtenerMesesDisponiblesSensores(instalaciones);
+  const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+  content.innerHTML = `
+    <div class="card componentes-subsection">
+      <div class="componentes-subsection-header">
+        <h3>📊 Resumen de Sensores</h3>
+      </div>
+      <div class="resumen-componentes-filters">
+        <select id="filter-sensor" class="form-select">
+          <option value="">Todos los sensores</option>
+          ${sensoresDisponibles.map(s => `<option value="${s}">${s}</option>`).join('')}
+        </select>
+        <select id="filter-mes-sensores" class="form-select">
+          <option value="">Todos los meses</option>
+          ${mesesDisponibles.map(m => `<option value="${m}" ${m === mesActual ? 'selected' : ''}>${formatMes(m)}</option>`).join('')}
+        </select>
+      </div>
+      <div id="resumen-sensores-content"></div>
+    </div>
+  `;
+
+  // Event listeners para filtros
+  const filterSensor = document.getElementById('filter-sensor');
+  const filterMes = document.getElementById('filter-mes-sensores');
+
+  filterSensor.addEventListener('input', () => {
+    aplicarFiltrosSensores(instalaciones);
+  });
+
+  filterMes.addEventListener('input', () => {
+    aplicarFiltrosSensores(instalaciones);
+  });
+
+  // Renderizar resumen inicial
+  aplicarFiltrosSensores(instalaciones);
+}
+
+function obtenerMesesDisponiblesSensores(instalaciones) {
+  const meses = new Set();
+  instalaciones.forEach(i => {
+    const fecha = new Date(i.fechaInstalacion);
+    const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    meses.add(mesKey);
+  });
+  return Array.from(meses).sort().reverse();
+}
+
+function aplicarFiltrosSensores(instalaciones) {
+  const filterSensor = document.getElementById('filter-sensor');
+  const filterMes = document.getElementById('filter-mes-sensores');
+  
+  let instalacionesFiltradas = [...instalaciones];
+  
+  if (filterSensor?.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => i.sensorNombre === filterSensor.value);
+  }
+  
+  if (filterMes?.value) {
+    instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      return mesKey === filterMes.value;
+    });
+  }
+  
+  renderResumenSensoresContent(instalacionesFiltradas);
+}
+
+function renderResumenSensoresContent(instalaciones) {
+  const content = document.getElementById('resumen-sensores-content');
+  
+  if (instalaciones.length === 0) {
+    content.innerHTML = '<div class="empty-state"><div class="icon">📊</div><p>No hay datos para mostrar</p></div>';
+    return;
+  }
+  
+  // Agrupar por nombre de sensor
+  const agrupado = {};
+  instalaciones.forEach(i => {
+    if (!agrupado[i.sensorNombre]) {
+      agrupado[i.sensorNombre] = [];
+    }
+    agrupado[i.sensorNombre].push(i);
+  });
+  
+  content.innerHTML = `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Sensor</th>
+            <th>Cantidad de Instalaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.keys(agrupado).map(nombre => `
+            <tr>
+              <td><strong>${nombre}</strong></td>
+              <td>${agrupado[nombre].length}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// Modal para sensor
+window.openModalSensor = async function(id = null) {
+  editingId = id;
+  const sector = document.getElementById('filter-sector-sensores').value;
+
+  const sensores = await fetchSensores(sector);
+  const sensor = id ? sensores.find(s => s.id === id) : {};
+
+  document.getElementById('modal-title').textContent = id ? 'Actualizar Sensor' : 'Nuevo Sensor';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group">
+      <label>Sector *</label>
+      <select id="f-sector" disabled>
+        <option value="${sector}">${sector}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Nombre del Sensor *</label>
+      <input type="text" id="f-nombre-sensor" value="${sensor.nombre || ''}" placeholder="Sin espacios" ${!editingId ? 'autocomplete="off"' : ''}>
+    </div>
+  `;
+
+  document.getElementById('modal-save').onclick = saveSensor;
+  document.getElementById('modal-overlay').classList.add('open');
+};
+
+async function saveSensor() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
+  const sector = document.getElementById('filter-sector-sensores').value;
+  const nombre = document.getElementById('f-nombre-sensor').value.trim();
+
+  if (!nombre) { showToast('Debe ingresar el nombre del sensor.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+
+  const sensor = {
+    id: editingId || generateId(),
+    sector,
+    nombre
+  };
+
+  try {
+    const url = editingId ? `${API_BASE}/sensores/${editingId}` : `${API_BASE}/sensores`;
+    const method = editingId ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, getAuthHeaders({
+      method: method,
+      body: JSON.stringify(sensor)
+    }));
+    if (!response.ok) throw new Error('Error al guardar sensor');
+
+    closeModal();
+    showToast('Datos guardados');
+    await showSensoresSubsection('registro');
+  } catch (error) {
+    console.error('Error saving sensor:', error);
+    showToast('Error al guardar sensor. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
+  }
+}
+
+window.deleteSensor = async function(id) {
+  try {
+    const response = await fetch(`${API_BASE}/sensores/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
+    if (!response.ok) throw new Error('Error al eliminar sensor');
+    showToast('Sensor eliminado');
+    await showSensoresSubsection('registro');
+  } catch (error) {
+    console.error('Error deleting sensor:', error);
+    showToast('Error al eliminar sensor. Por favor intente nuevamente.');
+  }
+};
+
+// Modal para instalación de sensor
+window.openModalInstalacionSensor = async function(idOrData) {
+  editingId = typeof idOrData === 'string' ? idOrData : null;
+  const sector = document.getElementById('filter-sector-sensores').value;
+  const piscinas = await fetchPiscinas(sector);
+  const sensores = await fetchSensores(sector);
+  const motores = await fetchMotores(sector);
+
+  let instalacion = {};
+  if (editingId) {
+    const instalaciones = await fetchInstalacionesSensores(sector);
+    instalacion = instalaciones.find(i => i.id === editingId) || {};
+  }
+
+  document.getElementById('modal-title').textContent = editingId ? 'Actualizar Instalación de Sensor' : 'Nueva Instalación de Sensor';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group">
+      <label>Sector *</label>
+      <select id="f-sector" disabled>
+        <option value="${sector}">${sector}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tipo de Sensor *</label>
+      <select id="f-sensor-id" required>
+        <option value="">— Seleccione un sensor —</option>
+        ${sensores.map(s => `<option value="${s.id}" ${instalacion.sensorId === s.id ? 'selected' : ''}>${s.nombre}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Punto de Instalación *</label>
+      <select id="f-punto-instalacion" required>
+        <option value="">— Seleccione punto de instalación —</option>
+        <option value="Motores AQ1" ${instalacion.puntoInstalacion === 'Motores AQ1' ? 'selected' : ''}>Motores AQ1</option>
+        <option value="Tolvas" ${instalacion.puntoInstalacion === 'Tolvas' ? 'selected' : ''}>Tolvas</option>
+        <option value="Piscinas" ${instalacion.puntoInstalacion === 'Piscinas' ? 'selected' : ''}>Piscinas</option>
+        <option value="Taller" ${instalacion.puntoInstalacion === 'Taller' ? 'selected' : ''}>Taller</option>
+      </select>
+    </div>
+    <div id="campos-dinamicos-sensores"></div>
+  `;
+
+  // Manejar campos dinámicos según punto de instalación
+  const puntoInstalacion = document.getElementById('f-punto-instalacion');
+  const camposDinamicos = document.getElementById('campos-dinamicos-sensores');
+
+  puntoInstalacion.addEventListener('change', () => {
+    const seleccionado = puntoInstalacion.value;
+    let camposHTML = '';
+
+    switch (seleccionado) {
+      case 'Motores AQ1':
+        camposHTML = `
+          <div class="form-group">
+            <label>Código de Motor</label>
+            <select id="f-motor-codigo">
+              <option value="">— Seleccione un motor —</option>
+              ${motores.map(m => `<option value="${m.codigo}" ${instalacion.motorCodigo === m.codigo ? 'selected' : ''}>${m.codigo}</option>`).join('')}
+            </select>
+          </div>
+        `;
+        break;
+      case 'Tolvas':
+        camposHTML = `
+          <div class="form-group">
+            <label>Piscina *</label>
+            <select id="f-piscina-numero" required>
+              <option value="">— Seleccione una piscina —</option>
+              ${piscinas.map(p => `<option value="${p.numero}" ${instalacion.piscinaNumero === p.numero ? 'selected' : ''}>${p.numero}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Número de Tolva</label>
+            <input type="text" id="f-tolva-numero" value="${instalacion.tolvaNumero || ''}" placeholder="Número de tolva">
+          </div>
+        `;
+        break;
+      case 'Piscinas':
+        camposHTML = `
+          <div class="form-group">
+            <label>Piscina *</label>
+            <select id="f-piscina-numero" required>
+              <option value="">— Seleccione una piscina —</option>
+              ${piscinas.map(p => `<option value="${p.numero}" ${instalacion.piscinaNumero === p.numero ? 'selected' : ''}>${p.numero}</option>`).join('')}
+            </select>
+          </div>
+        `;
+        break;
+      case 'Taller':
+        camposHTML = `
+          <div class="form-group">
+            <label>Detalles</label>
+            <input type="text" id="f-taller-detalles" placeholder="Escriba los detalles..." value="${instalacion.tallerDetalles || ''}" ${!editingId ? 'autocomplete="off"' : ''}>
+          </div>
+        `;
+        break;
+    }
+    camposDinamicos.innerHTML = camposHTML;
+  });
+
+  // Trigger inicial si hay un punto de instalación seleccionado
+  if (instalacion.puntoInstalacion) {
+    document.getElementById('f-punto-instalacion').dispatchEvent(new Event('change'));
+  }
+
+  document.getElementById('modal-save').onclick = saveInstalacionSensor;
+  document.getElementById('modal-overlay').classList.add('open');
+};
+
+async function saveInstalacionSensor() {
+  const saveBtn = document.getElementById('modal-save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
+  const sector = document.getElementById('filter-sector-sensores').value;
+  const sensorId = document.getElementById('f-sensor-id').value;
+  const puntoInstalacion = document.getElementById('f-punto-instalacion').value;
+
+  if (!sensorId) { showToast('Debe seleccionar un sensor.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+  if (!puntoInstalacion) { showToast('Debe seleccionar un punto de instalación.'); saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; return; }
+
+  let piscinaNumero = null;
+  let tolvaNumero = null;
+  let motorCodigo = null;
+  let sf200Zona = null;
+  let tallerDetalles = null;
+
+  switch (puntoInstalacion) {
+    case 'Tolvas':
+      tolvaNumero = document.getElementById('f-tolva-numero')?.value.trim() || null;
+      piscinaNumero = document.getElementById('f-piscina-numero')?.value || null;
+      break;
+    case 'Piscinas':
+      piscinaNumero = document.getElementById('f-piscina-numero')?.value || null;
+      break;
+    case 'Motores AQ1':
+      motorCodigo = document.getElementById('f-motor-codigo')?.value || null;
+      break;
+    case 'Taller':
+      tallerDetalles = document.getElementById('f-taller-detalles')?.value.trim() || null;
+      break;
+  }
+
+  const instalacion = {
+    id: editingId || generateId(),
+    sector,
+    sensorId,
+    puntoInstalacion,
+    piscinaNumero,
+    tolvaNumero,
+    motorCodigo,
+    sf200Zona,
+    tallerDetalles
+  };
+
+  try {
+    const url = editingId ? `${API_BASE}/instalaciones-sensores/${editingId}` : `${API_BASE}/instalaciones-sensores`;
+    const method = editingId ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, getAuthHeaders({
+      method: method,
+      body: JSON.stringify(instalacion)
+    }));
+    if (!response.ok) throw new Error('Error al guardar instalación de sensor');
+
+    closeModal();
+    showToast('Datos guardados');
+    await showSensoresSubsection('instalacion');
+  } catch (error) {
+    console.error('Error saving instalacion sensor:', error);
+    showToast('Error al guardar instalación. Por favor intente nuevamente.');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
+  }
+}
+
+window.deleteInstalacionSensor = async function(id) {
+  try {
+    const response = await fetch(`${API_BASE}/instalaciones-sensores/${id}`, getAuthHeaders({
+      method: 'DELETE'
+    }));
+    if (!response.ok) throw new Error('Error al eliminar instalación de sensor');
+    showToast('Instalación eliminada');
+    await showSensoresSubsection('instalacion');
+  } catch (error) {
+    console.error('Error deleting instalacion sensor:', error);
+    showToast('Error al eliminar instalación. Por favor intente nuevamente.');
+  }
+};
 
 // Modal
 function openModal(type, id = null) {
