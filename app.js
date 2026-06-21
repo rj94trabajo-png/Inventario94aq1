@@ -1902,18 +1902,20 @@ async function renderInstalacionSensores(sector) {
             <tr>
               <th>Sensor</th>
               <th>Punto de Instalación</th>
-              <th>Detalles</th>
+              <th>Ubicación</th>
+              <th>Lote</th>
               <th>Fecha</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${instalaciones.length === 0 ? '<tr><td colspan="5"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de sensores</p></div></td></tr>' :
+            ${instalaciones.length === 0 ? '<tr><td colspan="6"><div class="empty-state"><div class="icon">🔧</div><p>No hay instalaciones de sensores</p></div></td></tr>' :
             instalaciones.map(i => `
               <tr>
                 <td><strong>${i.sensorNombre}</strong></td>
                 <td>${i.puntoInstalacion}</td>
-                <td>${getDetallesInstalacionSensor(i)}</td>
+                <td>${getUbicacionInstalacionSensor(i)}</td>
+                <td>${i.loteCodigo || '—'}</td>
                 <td>${formatDate(i.fechaInstalacion)}</td>
                 <td class="actions">
                   <button class="btn btn-secondary btn-sm" onclick="window.openModalInstalacionSensor('${i.id}')">Editar</button>
@@ -1934,6 +1936,16 @@ async function renderInstalacionSensores(sector) {
       window.openModalInstalacionSensor({ piscinas, sensores, motores });
     });
   }
+}
+
+function getUbicacionInstalacionSensor(instalacion) {
+  const detalles = [];
+  if (instalacion.piscinaNumero) detalles.push(`Piscina ${instalacion.piscinaNumero}`);
+  if (instalacion.tolvaNumero) detalles.push(`Tolva ${instalacion.tolvaNumero}`);
+  if (instalacion.motorCodigo) detalles.push(`Motor ${instalacion.motorCodigo}`);
+  if (instalacion.sf200Zona) detalles.push(instalacion.sf200Zona);
+  if (instalacion.tallerDetalles) detalles.push(instalacion.tallerDetalles);
+  return detalles.join(' - ') || '—';
 }
 
 function getDetallesInstalacionSensor(instalacion) {
