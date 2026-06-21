@@ -2240,13 +2240,13 @@ async function saveInstalacionSensor() {
   const instalacion = {
     id: editingId || generateId(),
     sector,
-    sensorId,
-    puntoInstalacion,
-    piscinaNumero,
-    tolvaNumero,
-    motorCodigo,
-    sf200Zona,
-    tallerDetalles
+    sensor_id: sensorId,
+    punto_instalacion: puntoInstalacion,
+    piscina_numero: piscinaNumero,
+    tolva_numero: tolvaNumero,
+    motor_codigo: motorCodigo,
+    sf200_zona: sf200Zona,
+    taller_detalles: tallerDetalles
   };
 
   try {
