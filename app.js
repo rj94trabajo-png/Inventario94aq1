@@ -725,12 +725,32 @@ function buildResumenMotoresHTML(sector) {
   return {
     title: `Resumen del ${sector}`,
     body: `
-      <li>Total de Motores Registrados: <strong>${total}</strong></li>
-      <li>Taller por Mantenimiento: <strong>${taller}</strong></li>
-      <li>Problemas de Placa: <strong>${placa}</strong></li>
-      <li>Afuera por Mantenimiento: <strong>${afuera}</strong></li>
-      <li>Motores en Piscina: <strong>${enPiscina}</strong></li>
-    `
+      <div class="resumen-stats">
+        <ul class="resumen-lines">
+          <li>Total de Motores Registrados: <strong>${total}</strong></li>
+          <li>Taller por Mantenimiento: <strong>${taller}</strong></li>
+          <li>Problemas de Placa: <strong>${placa}</strong></li>
+          <li>Afuera por Mantenimiento: <strong>${afuera}</strong></li>
+          <li>Motores en Piscina: <strong>${enPiscina}</strong></li>
+        </ul>
+      </div>
+      <div class="resumen-charts">
+        <div class="chart-container">
+          <h3>Distribución por Estado</h3>
+          <canvas id="motoresPieChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Conteo por Estado</h3>
+          <canvas id="motoresBarChart"></canvas>
+        </div>
+      </div>
+    `,
+    chartData: {
+      taller,
+      placa,
+      afuera,
+      enPiscina
+    }
   };
 }
 
@@ -777,9 +797,92 @@ function toggleResumenEquipos() {
 function refreshResumenMotoresInline() {
   const sector = document.getElementById('filter-sector-motores').value;
   if (!sector) return;
-  const { title, body } = buildResumenMotoresHTML(sector);
+  const { title, body, chartData } = buildResumenMotoresHTML(sector);
   document.getElementById('motores-resumen-title').textContent = title;
   document.getElementById('motores-resumen-body').innerHTML = body;
+  
+  // Renderizar gráficas después de actualizar el HTML
+  setTimeout(() => {
+    renderMotoresCharts(chartData);
+  }, 100);
+}
+
+function renderMotoresCharts(data) {
+  // Destruir gráficas anteriores si existen
+  const pieCanvas = document.getElementById('motoresPieChart');
+  const barCanvas = document.getElementById('motoresBarChart');
+  
+  if (pieCanvas && pieCanvas.chart) {
+    pieCanvas.chart.destroy();
+  }
+  if (barCanvas && barCanvas.chart) {
+    barCanvas.chart.destroy();
+  }
+  
+  // Datos para las gráficas
+  const labels = ['Taller por Mantenimiento', 'Problemas de Placa', 'Afuera por Mantenimiento', 'Motores en Piscina'];
+  const values = [data.taller, data.placa, data.afuera, data.enPiscina];
+  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
+  
+  // Gráfica de círculo (Pie Chart)
+  if (pieCanvas) {
+    pieCanvas.chart = new Chart(pieCanvas, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: {
+                size: 11
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Gráfica de barras
+  if (barCanvas) {
+    barCanvas.chart = new Chart(barCanvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Cantidad de Motores',
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      }
+    });
+  }
 }
 
 function showResumenMotoresInline() {
@@ -3386,8 +3489,8 @@ function renderResumen() {
 
   sectorWrap.classList.toggle('search-hidden', !tipo);
 
-  // Si cambiamos de baterías o componentes a otro tipo, restaurar el HTML inmediatamente
-  if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes') && tipo && tipo !== previousResumenTipo) {
+  // Si cambiamos de baterías, componentes o sensores a otro tipo, restaurar el HTML inmediatamente
+  if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes' || previousResumenTipo === 'sensores') && tipo && tipo !== previousResumenTipo) {
     content.innerHTML = `
       <div class="resumen-sector-header">
         <h3 id="resumen-sector-label">Sector</h3>

@@ -849,7 +849,7 @@ tbody tr:hover {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  max-width: 360px;
+  max-width: 600px;
 }
 
 .resumen-panel .resumen-panel-title {
@@ -871,6 +871,34 @@ tbody tr:hover {
   line-height: 1.55;
   padding: 0.12rem 0;
   color: var(--text);
+}
+
+.resumen-stats {
+  margin-bottom: 0.5rem;
+}
+
+.resumen-charts {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chart-container {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.chart-container h3 {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin: 0 0 0.3rem 0;
+  text-align: center;
+}
+
+.chart-container canvas {
+  max-height: 180px;
 }
 
 .resumen-lines li strong {
