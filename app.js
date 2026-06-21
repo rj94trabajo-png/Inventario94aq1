@@ -3491,6 +3491,9 @@ function renderResumen() {
 
   // Si cambiamos de baterías, componentes o sensores a otro tipo, restaurar el HTML inmediatamente
   if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes' || previousResumenTipo === 'sensores') && tipo && tipo !== previousResumenTipo) {
+    // Limpiar completamente el contenido antes de restaurar
+    content.innerHTML = '';
+    
     content.innerHTML = `
       <div class="resumen-sector-header">
         <h3 id="resumen-sector-label">Sector</h3>
@@ -4171,6 +4174,13 @@ document.getElementById('resumen-tipo').addEventListener('change', () => {
   const searchEquipos = document.getElementById('search-resumen-equipos-piscina');
   if (searchMotores) searchMotores.value = '';
   if (searchEquipos) searchEquipos.value = '';
+  
+  // Limpiar completamente el contenido al cambiar de tipo
+  const content = document.getElementById('resumen-general-content');
+  if (content) {
+    content.innerHTML = '';
+  }
+  
   renderResumen();
 });
 document.getElementById('filter-sector-resumen').addEventListener('change', async () => {
@@ -4182,6 +4192,12 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
   // Refrescar datos cuando cambia el sector
   const sector = document.getElementById('filter-sector-resumen').value;
   const tipo = document.getElementById('resumen-tipo').value;
+  
+  // Limpiar contenido si cambiamos de tipo de inventario especial (baterías, componentes, sensores)
+  const content = document.getElementById('resumen-general-content');
+  if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes' || previousResumenTipo === 'sensores') && tipo && tipo !== previousResumenTipo) {
+    content.innerHTML = '';
+  }
   
   if (sector && tipo === 'motores') {
     data.motores = await fetchMotores(sector);
