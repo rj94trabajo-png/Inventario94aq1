@@ -3997,7 +3997,10 @@ function exportResumenExcel() {
 
   if (tipo === 'motores') {
     headers = ['Codigo', 'Estado de Motor', 'Piscina'];
-    rows = getMotoresSectorList(sector).map(m => [
+    let list = getMotoresSectorList(sector);
+    const codigo = document.getElementById('search-resumen-motores').value.replace(/\D/g, '');
+    if (codigo) list = list.filter(m => m.codigo.includes(codigo));
+    rows = list.map(m => [
       m.codigo,
       formatMotorEstado(m.estadoMotor),
       m.estadoMotor === 'Piscinas' ? getPiscinaLabel(m.piscinaId) : '—'
@@ -4179,9 +4182,71 @@ function exportResumenExcel() {
       showToast('Error al exportar componentes.');
     });
     return;
+  } else if (tipo === 'sensores') {
+    fetchInstalacionesSensores(sector).then(instalaciones => {
+      // Aplicar los mismos filtros que se muestran en la vista
+      const filterSensor = document.getElementById('filter-sensor');
+      const filterLote = document.getElementById('filter-lote-sensores');
+      const filterMes = document.getElementById('filter-mes-sensores');
+
+      let instalacionesFiltradas = [...instalaciones];
+
+      if (filterSensor?.value) {
+        instalacionesFiltradas = instalacionesFiltradas.filter(i => i.sensorNombre === filterSensor.value);
+      }
+
+      if (filterLote?.value) {
+        instalacionesFiltradas = instalacionesFiltradas.filter(i => i.loteCodigo === filterLote.value);
+      }
+
+      if (filterMes?.value) {
+        instalacionesFiltradas = instalacionesFiltradas.filter(i => {
+          const fecha = new Date(i.fechaInstalacion);
+          const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+          return mesKey === filterMes.value;
+        });
+      }
+
+      // Agrupar por nombre de sensor
+      const agrupado = {};
+      instalacionesFiltradas.forEach(i => {
+        if (!agrupado[i.sensorNombre]) {
+          agrupado[i.sensorNombre] = [];
+        }
+        agrupado[i.sensorNombre].push(i);
+      });
+
+      headers = ['Sensor', 'Cantidad de Instalaciones'];
+      rows = Object.keys(agrupado).map(nombre => [
+        nombre,
+        agrupado[nombre].length
+      ]);
+      filename = `AQ1_Sensores_${sector.replace(/\s/g, '_')}.xls`;
+
+      const th = h => `<th style="${center}background:#334155;color:#fff;font-weight:bold;">${escapeHtml(h)}</th>`;
+      const td = v => `<td style="${center}">${escapeHtml(v)}</td>`;
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="UTF-8"></head>
+<body><table border="1"><thead><tr>${headers.map(th).join('')}</tr></thead>
+<tbody>${rows.map(r => `<tr>${r.map(td).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+
+      const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }).catch(error => {
+      console.error('Error exportando sensores:', error);
+      showToast('Error al exportar sensores.');
+    });
+    return;
   } else {
     headers = ['Piscina', 'Estado de Piscina', 'SF200', 'Tolvas', 'Motores', 'Hidrofonos', 'Emas'];
-    rows = getEquiposSectorList(sector).map(e => [
+    let list = getEquiposSectorList(sector);
+    const piscinaId = document.getElementById('search-resumen-equipos-piscina').value;
+    if (piscinaId) list = list.filter(e => e.piscinaId === piscinaId);
+    rows = list.map(e => [
       getPiscinaLabel(e.piscinaId),
       e.estadoPiscina,
       e.sf200,
