@@ -3241,6 +3241,7 @@ function getResumenSector() {
 
 function populateResumenPiscinaSearch(sector) {
   const select = document.getElementById('search-resumen-equipos-piscina');
+  if (!select) return;
   const piscinas = getPiscinasBySector(sector);
   select.innerHTML = `<option value="">— Todas las piscinas —</option>` +
     piscinas.map(p => `<option value="${p.id}">Piscina ${p.numero}</option>`).join('');
@@ -3600,7 +3601,7 @@ function renderResumen() {
   if (searchEquipos) searchEquipos.classList.toggle('search-hidden', tipo !== 'equipos');
 
   if (tipo === 'equipos') populateResumenPiscinaSearch(sector);
-  if (tipo === 'motores') searchMotores.value = '';
+  if (tipo === 'motores' && searchMotores) searchMotores.value = '';
 
   // Manejar baterías, componentes y sensores de manera diferente
   if (tipo === 'baterias') {
