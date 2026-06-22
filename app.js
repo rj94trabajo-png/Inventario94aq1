@@ -4251,7 +4251,9 @@ document.getElementById('search-equipos').addEventListener('input', renderEquipo
 restrictNumeric(document.getElementById('search-equipos'));
 
 document.getElementById('resumen-tipo').addEventListener('change', async () => {
-  const sector = document.getElementById('filter-sector-resumen').value;
+  // Limpiar el sector seleccionado
+  document.getElementById('filter-sector-resumen').value = '';
+  
   const tipo = document.getElementById('resumen-tipo').value;
   const searchMotores = document.getElementById('search-resumen-motores');
   const searchEquipos = document.getElementById('search-resumen-equipos-piscina');
@@ -4280,17 +4282,6 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
   
   // Limpiar gráficas
   clearCharts();
-  
-  // Si hay un sector seleccionado, cargar los datos según el tipo
-  if (sector) {
-    if (tipo === 'equipos') {
-      data.equipos = await fetchEquipos(sector);
-      data.piscinas = await fetchPiscinas(sector);
-    } else if (tipo === 'motores') {
-      data.motores = await fetchMotores(sector);
-    }
-    // Baterías, componentes y sensores cargan sus datos dentro de sus funciones específicas
-  }
   
   renderResumen();
 });
