@@ -1525,7 +1525,7 @@ async function renderResumenComponentes(sector) {
 
 function renderResumenComponentesPorNombre(instalaciones) {
   const content = document.getElementById('resumen-componentes-content');
-  
+
   // Agrupar por nombre de componente
   const agrupado = {};
   instalaciones.forEach(i => {
@@ -1537,9 +1537,16 @@ function renderResumenComponentesPorNombre(instalaciones) {
 
   content.innerHTML = `
     <div class="resumen-componentes-margenes">
-      ${Object.keys(agrupado).map((nombre) => `
+      ${Object.keys(agrupado).map((nombre) => {
+        const cantidadRegistros = agrupado[nombre].length;
+        return `
         <div class="resumen-componentes-margen">
-          <div class="resumen-componentes-margen-header">Componentes: ${nombre} (${agrupado[nombre].length} registros)</div>
+          <div class="resumen-componentes-margen-header">
+            <div class="resumen-baterias-title">Componente: ${nombre}</div>
+            <div class="resumen-baterias-stats">
+              <span class="resumen-baterias-stat"><strong>Registros:</strong> ${cantidadRegistros}</span>
+            </div>
+          </div>
           <div class="table-wrapper">
             <table>
               <thead>
@@ -1561,14 +1568,14 @@ function renderResumenComponentesPorNombre(instalaciones) {
             </table>
           </div>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
 }
 
 function renderResumenComponentesPorPunto(instalaciones) {
   const content = document.getElementById('resumen-componentes-content');
-  
+
   // Agrupar por punto de instalación
   const agrupado = {};
   instalaciones.forEach(i => {
@@ -1580,9 +1587,16 @@ function renderResumenComponentesPorPunto(instalaciones) {
 
   content.innerHTML = `
     <div class="resumen-componentes-margenes">
-      ${Object.keys(agrupado).map((punto, index) => `
+      ${Object.keys(agrupado).map((punto) => {
+        const cantidadRegistros = agrupado[punto].length;
+        return `
         <div class="resumen-componentes-margen">
-          <div class="resumen-componentes-margen-header">Punto de Instalación ${index + 1}: ${punto} (${agrupado[punto].length} registros)</div>
+          <div class="resumen-componentes-margen-header">
+            <div class="resumen-baterias-title">Punto de Instalación: ${punto}</div>
+            <div class="resumen-baterias-stats">
+              <span class="resumen-baterias-stat"><strong>Registros:</strong> ${cantidadRegistros}</span>
+            </div>
+          </div>
           <div class="table-wrapper">
             <table>
               <thead>
@@ -1604,14 +1618,14 @@ function renderResumenComponentesPorPunto(instalaciones) {
             </table>
           </div>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
 }
 
 function renderResumenComponentesCombinadas(instalaciones) {
   const content = document.getElementById('resumen-componentes-content');
-  
+
   // Primera sección: Por Nombre
   const agrupadoPorNombre = {};
   instalaciones.forEach(i => {
@@ -1633,7 +1647,9 @@ function renderResumenComponentesCombinadas(instalaciones) {
   content.innerHTML = `
     <div class="resumen-componentes-margenes">
       <div class="resumen-componentes-margen">
-        <div class="resumen-componentes-margen-header">📋 Por Nombre</div>
+        <div class="resumen-componentes-margen-header">
+          <div class="resumen-baterias-title">📋 Por Nombre</div>
+        </div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -1658,7 +1674,9 @@ function renderResumenComponentesCombinadas(instalaciones) {
         </div>
       </div>
       <div class="resumen-componentes-margen">
-        <div class="resumen-componentes-margen-header">🔧 Por Punto de Instalación</div>
+        <div class="resumen-componentes-margen-header">
+          <div class="resumen-baterias-title">🔧 Por Punto de Instalación</div>
+        </div>
         <div class="table-wrapper">
           <table>
             <thead>
