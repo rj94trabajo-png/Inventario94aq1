@@ -4257,6 +4257,11 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
     content.innerHTML = '';
   }
   
+  // Limpiar datos anteriores
+  data.equipos = [];
+  data.motores = [];
+  data.piscinas = [];
+  
   // Si hay un sector seleccionado, cargar los datos según el tipo
   if (sector) {
     if (tipo === 'equipos') {
@@ -4281,9 +4286,9 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
   
   console.log('filter-sector-resumen change - sector:', sector, 'tipo:', tipo);
   
-  // Limpiar contenido si cambiamos de tipo de inventario especial (baterías, componentes, sensores)
+  // Limpiar contenido siempre al cambiar sector
   const content = document.getElementById('resumen-general-content');
-  if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes' || previousResumenTipo === 'sensores') && tipo && tipo !== previousResumenTipo) {
+  if (content) {
     content.innerHTML = '';
   }
   
