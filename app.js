@@ -4257,10 +4257,16 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
     content.innerHTML = '';
   }
   
-  // Limpiar datos anteriores
+  // Limpiar todos los datos anteriores
   data.equipos = [];
   data.motores = [];
   data.piscinas = [];
+  data.baterias = [];
+  data.componentes = [];
+  data.sensores = [];
+  data.lotesBaterias = [];
+  data.modelosBaterias = [];
+  data.lotesSensores = [];
   
   // Si hay un sector seleccionado, cargar los datos según el tipo
   if (sector) {
@@ -4270,6 +4276,7 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
     } else if (tipo === 'motores') {
       data.motores = await fetchMotores(sector);
     }
+    // Baterías, componentes y sensores cargan sus datos dentro de sus funciones específicas
   }
   
   renderResumen();
@@ -4292,6 +4299,17 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
     content.innerHTML = '';
   }
   
+  // Limpiar todos los datos anteriores
+  data.equipos = [];
+  data.motores = [];
+  data.piscinas = [];
+  data.baterias = [];
+  data.componentes = [];
+  data.sensores = [];
+  data.lotesBaterias = [];
+  data.modelosBaterias = [];
+  data.lotesSensores = [];
+  
   if (sector && tipo === 'motores') {
     console.log('Cargando motores para sector:', sector);
     data.motores = await fetchMotores(sector);
@@ -4301,9 +4319,7 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
     data.piscinas = await fetchPiscinas(sector);
     console.log('Datos cargados - equipos:', data.equipos.length, 'piscinas:', data.piscinas.length);
   }
-  // No necesitamos recargar datos para baterías o componentes aquí,
-  // ya que renderResumenBateriasPage y renderResumenComponentesPage
-  // hacen el fetch directamente dentro de ellas.
+  // Baterías, componentes y sensores cargan sus datos dentro de sus funciones específicas
   
   renderResumen();
 });
