@@ -674,6 +674,33 @@ tbody tr:hover {
   border-bottom: 1px solid var(--border);
 }
 
+.resumen-baterias-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.resumen-baterias-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.resumen-baterias-stat {
+  font-size: 0.85rem;
+  color: var(--text);
+  padding: 0.3rem 0.6rem;
+  background: var(--surface-2);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.resumen-baterias-stat strong {
+  color: var(--primary);
+}
+
 .resumen-baterias-margen table {
   background: transparent;
 }

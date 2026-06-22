@@ -5263,7 +5263,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
   if (tipo === 'todos') {
     // Mostrar ambos: por nombres y por lotes
     let html = '';
-    
+
     // Sección por nombres
     const agrupadoNombres = {};
     instalacionesFiltradas.forEach(i => {
@@ -5275,9 +5275,20 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
 
     html += '<h3 style="margin-bottom: 1rem; color: var(--primary);">Por Nombres</h3>';
     html += '<div class="resumen-baterias-margenes">';
-    html += Object.keys(agrupadoNombres).map((nombre, index) => `
+    html += Object.keys(agrupadoNombres).map((nombre) => {
+      const amperaje = agrupadoNombres[nombre][0]?.amperaje || 'N/A';
+      const cantidadRegistros = agrupadoNombres[nombre].length;
+      const cantidadBaterias = cantidadRegistros * 2;
+      return `
       <div class="resumen-baterias-margen">
-        <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupadoNombres[nombre].length} registros, ${agrupadoNombres[nombre].length * 2} baterías)</div>
+        <div class="resumen-baterias-margen-header">
+          <div class="resumen-baterias-title">Modelo de Batería: ${nombre}</div>
+          <div class="resumen-baterias-stats">
+            <span class="resumen-baterias-stat"><strong>Amperaje:</strong> ${amperaje}A</span>
+            <span class="resumen-baterias-stat"><strong>Registros:</strong> ${cantidadRegistros}</span>
+            <span class="resumen-baterias-stat"><strong>Baterías Instaladas:</strong> ${cantidadBaterias}</span>
+          </div>
+        </div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -5301,9 +5312,9 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
           </table>
         </div>
       </div>
-    `).join('');
+    `}).join('');
     html += '</div>';
-    
+
     // Sección por lotes
     const agrupadoLotes = {};
     instalacionesFiltradas.forEach(i => {
@@ -5316,9 +5327,18 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
 
     html += '<h3 style="margin: 2rem 0 1rem 0; color: var(--primary);">Por Lotes</h3>';
     html += '<div class="resumen-baterias-margenes">';
-    html += Object.keys(agrupadoLotes).map((loteKey, index) => `
+    html += Object.keys(agrupadoLotes).map((loteKey) => {
+      const cantidadRegistros = agrupadoLotes[loteKey].length;
+      const cantidadBaterias = cantidadRegistros * 2;
+      return `
       <div class="resumen-baterias-margen">
-        <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupadoLotes[loteKey].length} registros, ${agrupadoLotes[loteKey].length * 2} baterías)</div>
+        <div class="resumen-baterias-margen-header">
+          <div class="resumen-baterias-title">Lote: ${loteKey}</div>
+          <div class="resumen-baterias-stats">
+            <span class="resumen-baterias-stat"><strong>Registros:</strong> ${cantidadRegistros}</span>
+            <span class="resumen-baterias-stat"><strong>Baterías Instaladas:</strong> ${cantidadBaterias}</span>
+          </div>
+        </div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -5344,9 +5364,9 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
           </table>
         </div>
       </div>
-    `).join('');
+    `}).join('');
     html += '</div>';
-    
+
     content.innerHTML = html;
   } else if (tipo === 'nombres') {
     // Agrupar por nombre de batería
@@ -5360,9 +5380,20 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
 
     content.innerHTML = `
       <div class="resumen-baterias-margenes">
-        ${Object.keys(agrupado).map((nombre, index) => `
+        ${Object.keys(agrupado).map((nombre, index) => {
+          const amperaje = agrupado[nombre][0]?.amperaje || 'N/A';
+          const cantidadRegistros = agrupado[nombre].length;
+          const cantidadBaterias = cantidadRegistros * 2;
+          return `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Modelo de Batería ${index + 1}: ${nombre} (${agrupado[nombre].length} registros, ${agrupado[nombre].length * 2} baterías)</div>
+            <div class="resumen-baterias-margen-header">
+              <div class="resumen-baterias-title">Modelo de Batería: ${nombre}</div>
+              <div class="resumen-baterias-stats">
+                <span class="resumen-baterias-stat"><strong>Amperaje:</strong> ${amperaje}A</span>
+                <span class="resumen-baterias-stat"><strong>Registros:</strong> ${cantidadRegistros}</span>
+                <span class="resumen-baterias-stat"><strong>Baterías Instaladas:</strong> ${cantidadBaterias}</span>
+              </div>
+            </div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -5388,7 +5419,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
               </table>
             </div>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
     `;
   } else if (tipo === 'lotes') {
@@ -5404,9 +5435,18 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
 
     content.innerHTML = `
       <div class="resumen-baterias-margenes">
-        ${Object.keys(agrupado).map((loteKey, index) => `
+        ${Object.keys(agrupado).map((loteKey, index) => {
+          const cantidadRegistros = agrupado[loteKey].length;
+          const cantidadBaterias = cantidadRegistros * 2;
+          return `
           <div class="resumen-baterias-margen">
-            <div class="resumen-baterias-margen-header">Lote ${index + 1}: ${loteKey} (${agrupado[loteKey].length} registros, ${agrupado[loteKey].length * 2} baterías)</div>
+            <div class="resumen-baterias-margen-header">
+              <div class="resumen-baterias-title">Lote: ${loteKey}</div>
+              <div class="resumen-baterias-stats">
+                <span class="resumen-baterias-stat"><strong>Registros:</strong> ${cantidadRegistros}</span>
+                <span class="resumen-baterias-stat"><strong>Baterías Instaladas:</strong> ${cantidadBaterias}</span>
+              </div>
+            </div>
             <div class="table-wrapper">
               <table>
                 <thead>
@@ -5434,7 +5474,7 @@ function renderResumenBaterias(tipo, instalaciones, mes = '', semana = '') {
               </table>
             </div>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
     `;
   } else if (tipo === 'combinada') {
