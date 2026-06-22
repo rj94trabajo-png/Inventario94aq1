@@ -269,6 +269,11 @@ body {
   border-radius: 8px;
 }
 
+#page-resumen .table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
 .table-wrapper-wide {
   overflow-x: auto;
   width: 100%;
