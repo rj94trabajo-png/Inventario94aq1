@@ -4205,8 +4205,9 @@ document.getElementById('filter-sector-equipos').addEventListener('change', rend
 document.getElementById('search-equipos').addEventListener('input', renderEquipos);
 restrictNumeric(document.getElementById('search-equipos'));
 
-document.getElementById('resumen-tipo').addEventListener('change', () => {
-  document.getElementById('filter-sector-resumen').value = '';
+document.getElementById('resumen-tipo').addEventListener('change', async () => {
+  const sector = document.getElementById('filter-sector-resumen').value;
+  const tipo = document.getElementById('resumen-tipo').value;
   const searchMotores = document.getElementById('search-resumen-motores');
   const searchEquipos = document.getElementById('search-resumen-equipos-piscina');
   if (searchMotores) searchMotores.value = '';
@@ -4216,6 +4217,16 @@ document.getElementById('resumen-tipo').addEventListener('change', () => {
   const content = document.getElementById('resumen-general-content');
   if (content) {
     content.innerHTML = '';
+  }
+  
+  // Si hay un sector seleccionado, cargar los datos según el tipo
+  if (sector) {
+    if (tipo === 'equipos') {
+      data.equipos = await fetchEquipos(sector);
+      data.piscinas = await fetchPiscinas(sector);
+    } else if (tipo === 'motores') {
+      data.motores = await fetchMotores(sector);
+    }
   }
   
   renderResumen();
