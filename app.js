@@ -2191,6 +2191,8 @@ function renderResumenSensoresContent(instalaciones) {
 function updateSensoresCharts(instalaciones) {
   console.log('updateSensoresCharts - instalaciones:', instalaciones);
   console.log('updateSensoresCharts - activeSensoresTab:', activeSensoresTab);
+  console.log('updateSensoresCharts - chart-bar canvas:', document.getElementById('chart-bar'));
+  console.log('updateSensoresCharts - chart-pie canvas:', document.getElementById('chart-pie'));
 
   if (instalaciones.length === 0) {
     clearCharts();
