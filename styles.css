@@ -274,6 +274,11 @@ body {
   overflow-y: auto;
 }
 
+#page-motores .table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
 .table-wrapper-wide {
   overflow-x: auto;
   width: 100%;
