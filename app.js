@@ -2189,6 +2189,9 @@ function renderResumenSensoresContent(instalaciones) {
 }
 
 function updateSensoresCharts(instalaciones) {
+  console.log('updateSensoresCharts - instalaciones:', instalaciones);
+  console.log('updateSensoresCharts - activeSensoresTab:', activeSensoresTab);
+
   if (instalaciones.length === 0) {
     clearCharts();
     return;
@@ -2235,6 +2238,9 @@ function updateSensoresCharts(instalaciones) {
     labels = Object.keys(agrupado).map(m => formatMes(m));
     data = Object.values(agrupado);
   }
+
+  console.log('updateSensoresCharts - labels:', labels);
+  console.log('updateSensoresCharts - data:', data);
 
   // Crear gráficas
   createBarChart(labels, data, 'Cantidad de Instalaciones');
