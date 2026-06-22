@@ -3909,11 +3909,16 @@ async function renderResumenSensoresPage(sector) {
     const content = document.getElementById('resumen-general-content');
     const instalaciones = await fetchInstalacionesSensores(sector);
 
+    console.log('renderResumenSensoresPage - sector:', sector);
+    console.log('renderResumenSensoresPage - instalaciones:', instalaciones);
+
     // Generar lista de sensores disponibles
     const sensoresDisponibles = [...new Set(instalaciones.map(i => i.sensorNombre))].sort();
+    console.log('renderResumenSensoresPage - sensoresDisponibles:', sensoresDisponibles);
     const mesesDisponibles = obtenerMesesDisponiblesSensores(instalaciones);
     const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
     const lotesDisponibles = [...new Set(instalaciones.filter(i => i.loteCodigo).map(i => i.loteCodigo))].sort();
+    console.log('renderResumenSensoresPage - lotesDisponibles:', lotesDisponibles);
 
     // Resetear activeSensoresTab al valor por defecto
     activeSensoresTab = 'nombres';
