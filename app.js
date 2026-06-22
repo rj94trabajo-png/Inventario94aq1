@@ -3601,37 +3601,44 @@ function renderResumen() {
   }
 
   // Verificar si el contenido está vacío y restaurar el HTML si es necesario
+  // Solo restaurar HTML estándar para equipos y motores, no para baterías/componentes/sensores
   if (!content.innerHTML.trim() || !document.getElementById('resumen-sector-label')) {
-    content.innerHTML = `
-      <div class="resumen-sector-header">
-        <h3 id="resumen-sector-label">Sector</h3>
-        <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
-      </div>
-      <div class="card resumen-panel resumen-panel-general">
-        <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
-        <ul class="resumen-lines" id="resumen-general-body"></ul>
-      </div>
-      <div class="toolbar sector-toolbar">
-        <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
-        <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
-          <option value="">— Todas las piscinas —</option>
-        </select>
-      </div>
-      <div class="card">
-        <div class="table-wrapper">
-          <table>
-            <thead id="resumen-general-thead"></thead>
-            <tbody id="resumen-general-tbody"></tbody>
-          </table>
+    if (tipo === 'baterias' || tipo === 'componentes' || tipo === 'sensores') {
+      // Para tipos especiales, dejar el contenido vacío para que sus funciones específicas lo generen
+      content.innerHTML = '';
+    } else {
+      // Para equipos y motores, restaurar HTML estándar
+      content.innerHTML = `
+        <div class="resumen-sector-header">
+          <h3 id="resumen-sector-label">Sector</h3>
+          <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
         </div>
-      </div>
-    `;
-    
-    // Re-adjuntar event listeners
-    document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
-    document.getElementById('search-resumen-motores').addEventListener('input', renderResumenGeneralTable);
-    restrictNumeric(document.getElementById('search-resumen-motores'), 5);
-    document.getElementById('search-resumen-equipos-piscina').addEventListener('change', renderResumenGeneralTable);
+        <div class="card resumen-panel resumen-panel-general">
+          <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
+          <ul class="resumen-lines" id="resumen-general-body"></ul>
+        </div>
+        <div class="toolbar sector-toolbar">
+          <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
+          <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
+            <option value="">— Todas las piscinas —</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead id="resumen-general-thead"></thead>
+              <tbody id="resumen-general-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      
+      // Re-adjuntar event listeners
+      document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+      document.getElementById('search-resumen-motores').addEventListener('input', renderResumenGeneralTable);
+      restrictNumeric(document.getElementById('search-resumen-motores'), 5);
+      document.getElementById('search-resumen-equipos-piscina').addEventListener('change', renderResumenGeneralTable);
+    }
   }
 
   content.classList.remove('search-hidden');
