@@ -3542,22 +3542,36 @@ function renderResumen() {
         <h3 id="resumen-sector-label">Sector</h3>
         <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
       </div>
-      <div class="card resumen-panel resumen-panel-general">
-        <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
-        <ul class="resumen-lines" id="resumen-general-body"></ul>
-      </div>
-      <div class="toolbar sector-toolbar">
-        <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
-        <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
-          <option value="">— Todas las piscinas —</option>
-        </select>
-      </div>
-      <div class="card">
-        <div class="table-wrapper">
-          <table>
-            <thead id="resumen-general-thead"></thead>
-            <tbody id="resumen-general-tbody"></tbody>
-          </table>
+      <div class="resumen-layout">
+        <div class="resumen-main">
+          <div class="card resumen-panel resumen-panel-general">
+            <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
+            <ul class="resumen-lines" id="resumen-general-body"></ul>
+          </div>
+          <div class="toolbar sector-toolbar">
+            <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
+            <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
+              <option value="">— Todas las piscinas —</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="table-wrapper">
+              <table>
+                <thead id="resumen-general-thead"></thead>
+                <tbody id="resumen-general-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="resumen-charts">
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica de Barras</span>
+            <canvas id="chart-bar"></canvas>
+          </div>
+          <div class="card chart-card">
+            <span class="chart-title">Gráfica Circular</span>
+            <canvas id="chart-pie"></canvas>
+          </div>
         </div>
       </div>
     `;
@@ -3615,22 +3629,36 @@ function renderResumen() {
           <h3 id="resumen-sector-label">Sector</h3>
           <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
         </div>
-        <div class="card resumen-panel resumen-panel-general">
-          <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
-          <ul class="resumen-lines" id="resumen-general-body"></ul>
-        </div>
-        <div class="toolbar sector-toolbar">
-          <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
-          <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
-            <option value="">— Todas las piscinas —</option>
-          </select>
-        </div>
-        <div class="card">
-          <div class="table-wrapper">
-            <table>
-              <thead id="resumen-general-thead"></thead>
-              <tbody id="resumen-general-tbody"></tbody>
-            </table>
+        <div class="resumen-layout">
+          <div class="resumen-main">
+            <div class="card resumen-panel resumen-panel-general">
+              <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
+              <ul class="resumen-lines" id="resumen-general-body"></ul>
+            </div>
+            <div class="toolbar sector-toolbar">
+              <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
+              <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
+                <option value="">— Todas las piscinas —</option>
+              </select>
+            </div>
+            <div class="card">
+              <div class="table-wrapper">
+                <table>
+                  <thead id="resumen-general-thead"></thead>
+                  <tbody id="resumen-general-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="resumen-charts">
+            <div class="card chart-card">
+              <span class="chart-title">Gráfica de Barras</span>
+              <canvas id="chart-bar"></canvas>
+            </div>
+            <div class="card chart-card">
+              <span class="chart-title">Gráfica Circular</span>
+              <canvas id="chart-pie"></canvas>
+            </div>
           </div>
         </div>
       `;
