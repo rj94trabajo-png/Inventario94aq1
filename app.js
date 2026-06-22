@@ -4267,6 +4267,12 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
   data.lotesBaterias = [];
   data.modelosBaterias = [];
   data.lotesSensores = [];
+  data.instalacionesSensores = [];
+  data.instalacionesBaterias = [];
+  data.instalacionesComponentes = [];
+  
+  // Limpiar gráficas
+  clearCharts();
   
   // Si hay un sector seleccionado, cargar los datos según el tipo
   if (sector) {
@@ -4309,6 +4315,12 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
   data.lotesBaterias = [];
   data.modelosBaterias = [];
   data.lotesSensores = [];
+  data.instalacionesSensores = [];
+  data.instalacionesBaterias = [];
+  data.instalacionesComponentes = [];
+  
+  // Limpiar gráficas
+  clearCharts();
   
   if (sector && tipo === 'motores') {
     console.log('Cargando motores para sector:', sector);
