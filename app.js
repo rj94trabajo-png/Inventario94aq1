@@ -3258,7 +3258,8 @@ function getEquiposSectorList(sector) {
 function renderResumenGeneralSummary(sector, tipo) {
   const panel = document.getElementById('resumen-general-body');
   const title = document.getElementById('resumen-general-title');
-  document.getElementById('resumen-sector-label').textContent = sector;
+  const sectorLabel = document.getElementById('resumen-sector-label');
+  if (sectorLabel) sectorLabel.textContent = sector;
 
   if (tipo === 'motores') {
     const { title: t, body } = buildResumenMotoresHTML(sector);
@@ -3524,6 +3525,9 @@ function renderResumen() {
   const searchMotores = document.getElementById('search-resumen-motores');
   const searchEquipos = document.getElementById('search-resumen-equipos-piscina');
 
+  console.log('renderResumen - tipo:', tipo, 'sector:', sector);
+  console.log('renderResumen - data.equipos:', data.equipos);
+
   sectorWrap.classList.toggle('search-hidden', !tipo);
 
   // Si cambiamos de baterías, componentes o sensores a otro tipo, restaurar el HTML inmediatamente
@@ -3594,6 +3598,40 @@ function renderResumen() {
     if (searchEquipos) searchEquipos.classList.add('search-hidden');
     previousResumenTipo = tipo;
     return;
+  }
+
+  // Verificar si el contenido está vacío y restaurar el HTML si es necesario
+  if (!content.innerHTML.trim() || !document.getElementById('resumen-sector-label')) {
+    content.innerHTML = `
+      <div class="resumen-sector-header">
+        <h3 id="resumen-sector-label">Sector</h3>
+        <button class="btn btn-primary btn-sm" id="btn-export-excel">Descargar Excel</button>
+      </div>
+      <div class="card resumen-panel resumen-panel-general">
+        <span class="resumen-panel-title" id="resumen-general-title">Resumen del Sector</span>
+        <ul class="resumen-lines" id="resumen-general-body"></ul>
+      </div>
+      <div class="toolbar sector-toolbar">
+        <input type="text" class="search-input search-hidden" id="search-resumen-motores" inputmode="numeric" maxlength="5" placeholder="Buscar por código (5 dígitos)...">
+        <select class="sector-select search-hidden" id="search-resumen-equipos-piscina">
+          <option value="">— Todas las piscinas —</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead id="resumen-general-thead"></thead>
+            <tbody id="resumen-general-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    // Re-adjuntar event listeners
+    document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
+    document.getElementById('search-resumen-motores').addEventListener('input', renderResumenGeneralTable);
+    restrictNumeric(document.getElementById('search-resumen-motores'), 5);
+    document.getElementById('search-resumen-equipos-piscina').addEventListener('change', renderResumenGeneralTable);
   }
 
   content.classList.remove('search-hidden');
@@ -4241,6 +4279,8 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
   const sector = document.getElementById('filter-sector-resumen').value;
   const tipo = document.getElementById('resumen-tipo').value;
   
+  console.log('filter-sector-resumen change - sector:', sector, 'tipo:', tipo);
+  
   // Limpiar contenido si cambiamos de tipo de inventario especial (baterías, componentes, sensores)
   const content = document.getElementById('resumen-general-content');
   if ((previousResumenTipo === 'baterias' || previousResumenTipo === 'componentes' || previousResumenTipo === 'sensores') && tipo && tipo !== previousResumenTipo) {
@@ -4248,10 +4288,13 @@ document.getElementById('filter-sector-resumen').addEventListener('change', asyn
   }
   
   if (sector && tipo === 'motores') {
+    console.log('Cargando motores para sector:', sector);
     data.motores = await fetchMotores(sector);
   } else if (sector && tipo === 'equipos') {
+    console.log('Cargando equipos para sector:', sector);
     data.equipos = await fetchEquipos(sector);
     data.piscinas = await fetchPiscinas(sector);
+    console.log('Datos cargados - equipos:', data.equipos.length, 'piscinas:', data.piscinas.length);
   }
   // No necesitamos recargar datos para baterías o componentes aquí,
   // ya que renderResumenBateriasPage y renderResumenComponentesPage
