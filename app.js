@@ -3478,20 +3478,22 @@ function renderResumenEquiposCharts(sector) {
   const tolvasActivas = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
   const tolvasInactivas = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.tolvas) || 0), 0);
   const motoresActivos = equipos.filter(e => e.estadoPiscina === 'Activa').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
-  const motoresPorPesca = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
+  const motoresInactivosPorPesca = equipos.filter(e => e.estadoPiscina === 'Pescada').reduce((s, e) => s + (parseInt(e.motores) || 0), 0);
+  const emasOperativos = equipos.filter(e => e.estadoEma === 'Operativo').length;
+  const emasInactivos = equipos.filter(e => e.estadoEma === 'Inactivo').length;
   
-  const labels = ['Piscinas Pescadas', 'Piscinas Activas', 'Tolvas Activas', 'Tolvas Inactivas', 'Motores Activos', 'Motores por Pesca'];
-  const values = [piscinasPescadas, piscinasActivas, tolvasActivas, tolvasInactivas, motoresActivos, motoresPorPesca];
-  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+  const labels = ['Motores Activos en Piscina', 'Inactivos por Pesca', 'Tolvas Activas', 'Tolvas Inactivas', 'Emas Operativos', 'Ema Inactivos', 'Piscinas Activas', 'Piscinas Pescadas'];
+  const values = [motoresActivos, motoresInactivosPorPesca, tolvasActivas, tolvasInactivas, emasOperativos, emasInactivos, piscinasActivas, piscinasPescadas];
+  const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'];
   
   // Limpiar gráficas anteriores
   clearCharts();
   
   // Crear gráfica de barras
-  createBarChart(labels, values, 'Cantidad de Equipos');
+  createBarChart(labels, values, 'Cantidad de Equipos AQ1');
   
   // Crear gráfica circular
-  createPieChart(labels, values, 'Distribución de Equipos');
+  createPieChart(labels, values, 'Distribución de Equipos AQ1');
 }
 
 function renderResumenMotoresCharts(sector) {
