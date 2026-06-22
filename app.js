@@ -3273,6 +3273,9 @@ function renderResumenGeneralSummary(sector, tipo) {
     title.textContent = t;
     panel.innerHTML = body;
     
+    console.log('Renderizando gráficas de equipos para sector:', sector);
+    console.log('Datos de equipos:', data.equipos);
+    
     // Renderizar gráficas de equipos en resumen general
     setTimeout(() => {
       renderResumenEquiposCharts(sector);
