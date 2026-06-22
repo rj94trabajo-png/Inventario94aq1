@@ -2144,16 +2144,19 @@ function aplicarFiltrosSensores(instalaciones) {
   }
 
   renderResumenSensoresContent(instalacionesFiltradas);
+
+  // Generar gráficas basadas en los datos filtrados
+  updateSensoresCharts(instalacionesFiltradas);
 }
 
 function renderResumenSensoresContent(instalaciones) {
   const content = document.getElementById('resumen-sensores-content');
-  
+
   if (instalaciones.length === 0) {
     content.innerHTML = '<div class="empty-state"><div class="icon">📊</div><p>No hay datos para mostrar</p></div>';
     return;
   }
-  
+
   // Agrupar por nombre de sensor
   const agrupado = {};
   instalaciones.forEach(i => {
@@ -2162,7 +2165,7 @@ function renderResumenSensoresContent(instalaciones) {
     }
     agrupado[i.sensorNombre].push(i);
   });
-  
+
   content.innerHTML = `
     <div class="table-wrapper">
       <table>
@@ -2183,6 +2186,59 @@ function renderResumenSensoresContent(instalaciones) {
       </table>
     </div>
   `;
+}
+
+function updateSensoresCharts(instalaciones) {
+  if (instalaciones.length === 0) {
+    clearCharts();
+    return;
+  }
+
+  // Agrupar datos para gráficas según la vista activa
+  let labels = [];
+  let data = [];
+
+  if (activeSensoresTab === 'nombres') {
+    // Agrupar por nombre de sensor
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      if (!agrupado[i.sensorNombre]) {
+        agrupado[i.sensorNombre] = 0;
+      }
+      agrupado[i.sensorNombre]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  } else if (activeSensoresTab === 'lotes') {
+    // Agrupar por lote
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      const loteKey = i.loteCodigo || 'Sin Lote';
+      if (!agrupado[loteKey]) {
+        agrupado[loteKey] = 0;
+      }
+      agrupado[loteKey]++;
+    });
+    labels = Object.keys(agrupado);
+    data = Object.values(agrupado);
+  } else if (activeSensoresTab === 'fechas') {
+    // Agrupar por fecha (mes)
+    const agrupado = {};
+    instalaciones.forEach(i => {
+      const fecha = new Date(i.fechaInstalacion);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+      if (!agrupado[mesKey]) {
+        agrupado[mesKey] = 0;
+      }
+      agrupado[mesKey]++;
+    });
+    labels = Object.keys(agrupado).map(m => formatMes(m));
+    data = Object.values(agrupado);
+  }
+
+  // Crear gráficas
+  createBarChart(labels, data, 'Cantidad de Instalaciones');
+  createPieChart(labels, data, 'Distribución');
 }
 
 // Modal para sensor
@@ -3338,6 +3394,7 @@ function renderResumenGeneralTable() {
 let previousResumenTipo = '';
 let activeBateriasTab = 'nombres';
 let activeComponentesTab = 'nombres';
+let activeSensoresTab = 'nombres';
 let chartBarInstance = null;
 let chartPieInstance = null;
 
@@ -3832,10 +3889,21 @@ async function renderResumenSensoresPage(sector) {
     const mesActual = new Date().toISOString().slice(0, 7); // YYYY-MM
     const lotesDisponibles = [...new Set(instalaciones.filter(i => i.loteCodigo).map(i => i.loteCodigo))].sort();
 
+    // Resetear activeSensoresTab al valor por defecto
+    activeSensoresTab = 'nombres';
+
     content.innerHTML = `
       <div class="resumen-sector-header">
         <h3 id="resumen-sector-label">${sector}</h3>
         <div class="resumen-componentes-filters">
+          <div class="form-group">
+            <label>Vista de Gráficas</label>
+            <select id="filter-vista-sensores" class="form-select">
+              <option value="nombres">Por Nombres</option>
+              <option value="lotes">Por Lotes</option>
+              <option value="fechas">Por Fechas</option>
+            </select>
+          </div>
           <div class="form-group">
             <label>Sensor</label>
             <select id="filter-sensor" class="form-select">
@@ -3884,9 +3952,15 @@ async function renderResumenSensoresPage(sector) {
     document.getElementById('btn-export-excel').addEventListener('click', exportResumenExcel);
 
     // Event listeners para filtros
+    const filterVista = document.getElementById('filter-vista-sensores');
     const filterSensor = document.getElementById('filter-sensor');
     const filterLote = document.getElementById('filter-lote-sensores');
     const filterMes = document.getElementById('filter-mes-sensores');
+
+    filterVista.addEventListener('change', () => {
+      activeSensoresTab = filterVista.value;
+      aplicarFiltrosSensores(instalaciones);
+    });
 
     filterSensor.addEventListener('input', () => {
       filterLote.value = '';
@@ -4377,10 +4451,11 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
   
   // Limpiar gráficas
   clearCharts();
-  
+
   // Limpiar variables de estado específicas
   activeBateriasTab = 'nombres';
   activeComponentesTab = 'nombres';
+  activeSensoresTab = 'nombres';
   componentesSubsection = null;
   sensoresSubsection = null;
   trabajosSubsection = null;
