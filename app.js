@@ -4283,6 +4283,13 @@ document.getElementById('resumen-tipo').addEventListener('change', async () => {
   // Limpiar gráficas
   clearCharts();
   
+  // Limpiar variables de estado específicas
+  activeBateriasTab = 'nombres';
+  activeComponentesTab = 'nombres';
+  componentesSubsection = null;
+  sensoresSubsection = null;
+  trabajosSubsection = null;
+  
   renderResumen();
 });
 document.getElementById('filter-sector-resumen').addEventListener('change', async () => {
