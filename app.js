@@ -2185,23 +2185,37 @@ function renderResumenSensoresContent(instalaciones) {
   });
 
   content.innerHTML = `
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Sensor</th>
-            <th>Cantidad de Instalaciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${Object.keys(agrupado).map(nombre => `
-            <tr>
-              <td><strong>${nombre}</strong></td>
-              <td>${agrupado[nombre].length}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+    <div class="resumen-layout">
+      <div class="resumen-main">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Sensor</th>
+                <th>Cantidad de Instalaciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.keys(agrupado).map(nombre => `
+                <tr>
+                  <td><strong>${nombre}</strong></td>
+                  <td>${agrupado[nombre].length}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="resumen-charts">
+        <div class="card chart-card">
+          <span class="chart-title">Gráfica de Barras</span>
+          <canvas id="sensores-chart-bar"></canvas>
+        </div>
+        <div class="card chart-card">
+          <span class="chart-title">Gráfica Circular</span>
+          <canvas id="sensores-chart-pie"></canvas>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -2209,8 +2223,8 @@ function renderResumenSensoresContent(instalaciones) {
 function updateSensoresCharts(instalaciones) {
   console.log('updateSensoresCharts - instalaciones:', instalaciones);
   console.log('updateSensoresCharts - activeSensoresTab:', activeSensoresTab);
-  console.log('updateSensoresCharts - chart-bar canvas:', document.getElementById('chart-bar'));
-  console.log('updateSensoresCharts - chart-pie canvas:', document.getElementById('chart-pie'));
+  console.log('updateSensoresCharts - chart-bar canvas:', document.getElementById('sensores-chart-bar'));
+  console.log('updateSensoresCharts - chart-pie canvas:', document.getElementById('sensores-chart-pie'));
 
   if (instalaciones.length === 0) {
     clearCharts();
@@ -2263,8 +2277,8 @@ function updateSensoresCharts(instalaciones) {
   console.log('updateSensoresCharts - data:', data);
 
   // Crear gráficas
-  createBarChart(labels, data, 'Cantidad de Instalaciones');
-  createPieChart(labels, data, 'Distribución');
+  createSensoresBarChart(labels, data, 'Cantidad de Instalaciones');
+  createSensoresPieChart(labels, data, 'Distribución');
 }
 
 // Modal para sensor
@@ -3423,6 +3437,8 @@ let activeComponentesTab = 'nombres';
 let activeSensoresTab = 'nombres';
 let chartBarInstance = null;
 let chartPieInstance = null;
+let sensoresChartBarInstance = null;
+let sensoresChartPieInstance = null;
 
 function createBarChart(labels, data, label) {
   const ctx = document.getElementById('chart-bar');
@@ -3490,8 +3506,8 @@ function createBarChart(labels, data, label) {
   });
 }
 
-function createPieChart(labels, data, label) {
-  const ctx = document.getElementById('chart-pie');
+function createPieChart(labels, data, label, canvasId = 'chart-pie') {
+  const ctx = document.getElementById(canvasId);
   if (!ctx) return;
   
   // Destruir gráfica existente si hay una
@@ -3550,6 +3566,123 @@ function clearCharts() {
     chartPieInstance.destroy();
     chartPieInstance = null;
   }
+}
+
+function createSensoresBarChart(labels, data, label) {
+  const ctx = document.getElementById('sensores-chart-bar');
+  if (!ctx) return;
+
+  // Destruir gráfica existente si hay una
+  if (sensoresChartBarInstance) {
+    sensoresChartBarInstance.destroy();
+  }
+
+  sensoresChartBarInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        backgroundColor: [
+          'rgba(6, 182, 212, 0.7)',
+          'rgba(34, 197, 94, 0.7)',
+          'rgba(245, 158, 11, 0.7)',
+          'rgba(239, 68, 68, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(236, 72, 153, 0.7)'
+        ],
+        borderColor: [
+          'rgba(6, 182, 212, 1)',
+          'rgba(34, 197, 94, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(139, 92, 246, 1)',
+          'rgba(236, 72, 153, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: '#334155'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: '#334155'
+          }
+        }
+      }
+    }
+  });
+}
+
+function createSensoresPieChart(labels, data, label) {
+  const ctx = document.getElementById('sensores-chart-pie');
+  if (!ctx) return;
+
+  // Destruir gráfica existente si hay una
+  if (sensoresChartPieInstance) {
+    sensoresChartPieInstance.destroy();
+  }
+
+  sensoresChartPieInstance = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        backgroundColor: [
+          'rgba(6, 182, 212, 0.7)',
+          'rgba(34, 197, 94, 0.7)',
+          'rgba(245, 158, 11, 0.7)',
+          'rgba(239, 68, 68, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(236, 72, 153, 0.7)'
+        ],
+        borderColor: [
+          'rgba(6, 182, 212, 1)',
+          'rgba(34, 197, 94, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(139, 92, 246, 1)',
+          'rgba(236, 72, 153, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#f1f5f9',
+            padding: 10
+          }
+        }
+      }
+    }
+  });
 }
 
 function renderResumenEquiposCharts(sector) {
